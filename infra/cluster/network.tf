@@ -1,7 +1,7 @@
 # One VPC in one AZ. The NAT gateway sits in the public subnet; the control
-# plane, the verifier and the workers each get their own private subnet, so
-# the worker subnet can carry its own network ACL for per-node quarantine
-# entries (blueprint 8.3).
+# plane, the verifier and the workers each get their own private subnet.
+# The other subnets share one network ACL that the trust controller adds
+# per-node quarantine denies to (blueprint 8.3, Phase 5).
 
 data "aws_availability_zones" "available" {
   state = "available"
@@ -103,8 +103,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# Worker subnet NACL: allow everything at rule 1000, leaving rule numbers
-# below it free for the controller's per-node quarantine denies (Phase 5).
+# Worker subnet NACL: allow everything at rule 1000.
 resource "aws_network_acl" "workers" {
   vpc_id     = aws_vpc.this.id
   subnet_ids = [aws_subnet.workers.id]
@@ -128,4 +127,39 @@ resource "aws_network_acl" "workers" {
   }
 
   tags = { Name = "${var.cluster_name}-workers" }
+}
+
+# Network ACL of the public (NAT), control plane and verifier subnets:
+# allow everything at rule 1000 and leave 100-999 for the controller's
+# quarantine denies. An ACL rule matches the remote address, so a deny for a
+# worker's IP works here ("inbound from it", "outbound to it"), not on the
+# worker's own subnet (pkg/provider/aws/containment.go).
+resource "aws_network_acl" "infra" {
+  vpc_id     = aws_vpc.this.id
+  subnet_ids = [aws_subnet.public.id, aws_subnet.controlplane.id, aws_subnet.verifier.id]
+
+  ingress {
+    rule_no    = 1000
+    protocol   = "-1"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  egress {
+    rule_no    = 1000
+    protocol   = "-1"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  tags = { Name = "${var.cluster_name}-infra" }
+
+  # The controller adds and keeps deny entries at run time.
+  lifecycle {
+    ignore_changes = [ingress, egress]
+  }
 }

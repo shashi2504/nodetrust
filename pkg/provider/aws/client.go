@@ -33,6 +33,7 @@ type Client struct {
 	// Endpoints; empty means the public AWS endpoint for Region. Tests set them.
 	EC2Endpoint string // e.g. https://ec2.ap-south-1.amazonaws.com
 	S3Endpoint  string // e.g. https://s3.ap-south-1.amazonaws.com (path-style requests)
+	ASEndpoint  string // e.g. https://autoscaling.ap-south-1.amazonaws.com
 	IMDS        string
 	// Static credentials skip IMDS (development only).
 	Static *Credentials
@@ -151,12 +152,27 @@ func (e *APIError) Error() string {
 }
 
 func (c *Client) ec2(ctx context.Context, form url.Values, out any) error {
-	form.Set("Version", "2016-11-15")
-	body := form.Encode()
 	ep := c.EC2Endpoint
 	if ep == "" {
 		ep = "https://ec2." + c.Region + ".amazonaws.com"
 	}
+	return c.query(ctx, ep, "ec2", "2016-11-15", form, out)
+}
+
+// autoscaling calls the Auto Scaling query API.
+func (c *Client) autoscaling(ctx context.Context, form url.Values, out any) error {
+	ep := c.ASEndpoint
+	if ep == "" {
+		ep = "https://autoscaling." + c.Region + ".amazonaws.com"
+	}
+	return c.query(ctx, ep, "autoscaling", "2011-01-01", form, out)
+}
+
+// query sends one signed AWS query API request (EC2 and Auto Scaling use
+// the same form-encoded POST, with different error XML).
+func (c *Client) query(ctx context.Context, ep, service, version string, form url.Values, out any) error {
+	form.Set("Version", version)
+	body := form.Encode()
 	req, err := http.NewRequestWithContext(ctx, "POST", ep+"/", strings.NewReader(body))
 	if err != nil {
 		return err
@@ -167,7 +183,7 @@ func (c *Client) ec2(ctx context.Context, form url.Values, out any) error {
 		return err
 	}
 	h := sha256.Sum256([]byte(body))
-	Sign(req, cr, c.Region, "ec2", hex.EncodeToString(h[:]), c.now())
+	Sign(req, cr, c.Region, service, hex.EncodeToString(h[:]), c.now())
 	resp, err := c.httpc().Do(req)
 	if err != nil {
 		return err
@@ -179,14 +195,18 @@ func (c *Client) ec2(ctx context.Context, form url.Values, out any) error {
 	}
 	if resp.StatusCode != 200 {
 		var e struct {
-			Errors []struct{ Code, Message string } `xml:"Errors>Error"`
+			Errors []struct{ Code, Message string } `xml:"Errors>Error"` // EC2
+			Error  struct{ Code, Message string }   `xml:"Error"`        // Auto Scaling
 		}
 		xml.Unmarshal(b, &e)
-		ae := &APIError{Status: resp.StatusCode}
+		ae := &APIError{Status: resp.StatusCode, Code: e.Error.Code, Message: e.Error.Message}
 		if len(e.Errors) > 0 {
 			ae.Code, ae.Message = e.Errors[0].Code, e.Errors[0].Message
 		}
 		return ae
+	}
+	if out == nil {
+		return nil
 	}
 	return xml.Unmarshal(b, out)
 }
@@ -202,6 +222,16 @@ type Instance struct {
 	Zone         string
 	LaunchTime   time.Time
 	Tags         map[string]string
+	SubnetID     string
+	VPCID        string
+	Volumes      []string // every EBS volume attached
+	ENIs         []ENI
+}
+
+// ENI is one network interface of an instance and its security groups.
+type ENI struct {
+	ID     string
+	Groups []string
 }
 
 type xmlInstance struct {
@@ -212,10 +242,16 @@ type xmlInstance struct {
 	RootDevice string    `xml:"rootDeviceName"`
 	Zone       string    `xml:"placement>availabilityZone"`
 	LaunchTime time.Time `xml:"launchTime"`
+	SubnetID   string    `xml:"subnetId"`
+	VPCID      string    `xml:"vpcId"`
 	Devices    []struct {
 		Name   string `xml:"deviceName"`
 		Volume string `xml:"ebs>volumeId"`
 	} `xml:"blockDeviceMapping>item"`
+	ENIs []struct {
+		ID     string   `xml:"networkInterfaceId"`
+		Groups []string `xml:"groupSet>item>groupId"`
+	} `xml:"networkInterfaceSet>item"`
 	Tags []struct {
 		Key   string `xml:"key"`
 		Value string `xml:"value"`
@@ -252,11 +288,17 @@ func (c *Client) DescribeInstances(ctx context.Context, filters map[string][]str
 		for _, res := range r.Reservations {
 			for _, x := range res.Instances {
 				in := Instance{ID: x.ID, ImageID: x.ImageID, PrivateIP: x.PrivateIP, State: x.State, Zone: x.Zone,
-					LaunchTime: x.LaunchTime, Tags: map[string]string{}}
+					LaunchTime: x.LaunchTime, Tags: map[string]string{}, SubnetID: x.SubnetID, VPCID: x.VPCID}
 				for _, d := range x.Devices {
 					if d.Name == x.RootDevice {
 						in.RootVolumeID = d.Volume
 					}
+					if d.Volume != "" {
+						in.Volumes = append(in.Volumes, d.Volume)
+					}
+				}
+				for _, e := range x.ENIs {
+					in.ENIs = append(in.ENIs, ENI{ID: e.ID, Groups: e.Groups})
 				}
 				for _, t := range x.Tags {
 					in.Tags[t.Key] = t.Value

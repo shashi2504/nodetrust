@@ -25,8 +25,11 @@ once a minute, for as long as it runs:
    NodeTrust object. Only the verifier can write it, and anyone can check
    its signature, so a compromised node or cluster admin cannot fake a
    healthy state.
-5. (Phase 5, planned) A trust controller reads the signed states and taints,
-   isolates, snapshots and replaces bad nodes through the AWS API.
+5. A trust controller checks the signed states and acts on them: taints
+   and cordons for the score tiers, and for a critical node an out-of-band
+   quarantine through the AWS API (empty security group, network ACL deny,
+   evidence snapshots, replacement from the Auto Scaling group), with a
+   dry-run mode, a verifier-outage guard and a circuit breaker.
 
 ## Why it is useful
 
@@ -62,6 +65,9 @@ How a node is checked, module by module (input -> output):
 | `pkg/joinref` | node ID, zone, IP | expected hashes of the files kubeadm writes at join |
 | `pkg/trust` | classified files, mount report | critical findings, score, tier, drift class |
 | `pkg/nodetrust` | node state | signed NodeTrust object in the API server |
+| `pkg/controller` | signed NodeTrust objects, Nodes | taints, cordon, evictions; the critical path |
+| `pkg/provider/aws` (containment) | instance ID | quarantine group and ACL deny, snapshots, detach from the group, terminate |
+| `cmd/controller` | config.json | the controller service, `approve` and `terminate` |
 | `cmd/verifier` | config.json | the verifier service and its command-line tools |
 
 The full picture of each phase, with the reasons for each design choice and
@@ -92,7 +98,7 @@ AWS and Kubernetes clients are written with the standard library.
 ```
 git clone https://github.com/shashi2504/nodetrust.git
 cd nodetrust
-make demo        # the verifier's checks on saved logs, about 1 second
+make demo        # the verifier's and controller's checks on saved data, about 1 second
 make all         # format check, vet, unit tests, build into bin/
 ```
 
@@ -106,9 +112,13 @@ make all         # format check, vet, unit tests, build into bin/
 4. four small config edits five minutes apart are classified as gradual
    drift;
 5. a signed NodeTrust update verifies, and an edited, replayed, moved,
-   foreign-key or stale copy is refused.
+   foreign-key or stale copy is refused;
+6. the trust controller, on an in-memory cluster and cloud, taints warning
+   and degraded nodes, ignores a forged critical update, contains a
+   critical node (isolate, snapshot, replace, delete the Node), and holds a
+   second one at the circuit breaker until an operator approves.
 
-It prints `ok` or `BAD` for each of its 22 checks and exits 1 if any is
+It prints `ok` or `BAD` for each of its 29 checks and exits 1 if any is
 wrong. Other targets:
 
 ```
@@ -154,14 +164,20 @@ cd ../phase4
 ./join-reference.sh
 ALLOWED_AMIS="$GOLDEN" ./deploy-verifier.sh
 
-# 6. checks (each leaves a changed worker; replace-workers.sh gives fresh ones)
+# 6. Phase 4 checks (each leaves a changed worker; replace-workers.sh gives fresh ones)
 ./check-nodetrust.sh
 ./replace-workers.sh && ./check-scoring.sh
 ./replace-workers.sh && ./check-probes.sh
 ./replace-workers.sh && ./check-join.sh
 ./replace-workers.sh && HOURS=4 ./phase4-gate.sh
 
-# 7. clean up (the trust stack stays)
+# 7. trust controller (Phase 5): dry run, then live
+./replace-workers.sh && cd ../phase5
+DRY_RUN=1 ./deploy-controller.sh && ./check-controller.sh
+cd ../phase4 && ./replace-workers.sh && cd ../phase5
+DRY_RUN=0 ./deploy-controller.sh && ./check-controller.sh
+
+# 8. clean up (the trust stack stays; check-controller.sh prints how to delete the evidence snapshots)
 cd ../cluster && terraform destroy
 ```
 
@@ -196,6 +212,29 @@ To change the interval or the allowed AMIs, rerun deploy-verifier.sh with
 the environment variables below; it rewrites the config and restarts the
 service.
 
+### Controller configuration
+
+`controller serve -config /etc/nodetrust/controller/config.json`, written
+by `infra/phase5/deploy-controller.sh` from
+`infra/phase5/controller/config.json.tmpl`.
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `dry_run` | log every action, change nothing | `true` from `DRY_RUN=1` |
+| `interval` | how often it reconciles | `5s` |
+| `max_age` | a NodeTrust update older than this is stale | `3m` |
+| `breaker_nodes`, `breaker_fraction`, `breaker_window` | circuit breaker: more critical nodes than this in the window wait for an operator | `2`, `0.3`, `10m` |
+| `trust_public_key` | pinned NodeTrust signing key | from infra/cluster |
+| `kube.*` | API server and the controller's client certificate | from infra/cluster |
+| `quarantine_sg`, `nacl` | empty security group and the infra network ACL | from infra/cluster |
+
+Operator commands, on the control plane host:
+
+```
+nodetrust-controller approve -instance i-...           # let containment pass the circuit breaker
+nodetrust-controller terminate -instance i-... -yes    # destroy a quarantined instance (snapshots stay)
+```
+
 ### Script settings (environment variables)
 
 | Variable | Used by | Default |
@@ -204,6 +243,7 @@ service.
 | `ALLOWED_AMIS` | deploy-verifier.sh | every AMI in boot-policy.json |
 | `INTERVAL` | deploy-verifier.sh | `60s` |
 | `HOURS` | phase4-gate.sh (length of the soak) | `4` |
+| `DRY_RUN` | deploy-controller.sh (`1` log only, `0` live) | `1` |
 | `PROBE_MODE` | 02-launch-probe.sh, 03-run-probe.sh (`base` or `golden`) | `base` |
 | `INSTANCE_TYPE`, `ROOT_GB` | phase1 probe and AMI build | `m6i.large`, `30` |
 | `BUILD_TIMEOUT_MIN` | build-golden-ami.sh | `40` |
@@ -294,6 +334,7 @@ infra/phase2                               reference manifest: build, sign, Reko
 infra/cluster                              Terraform: VPC, control plane, workers, verifier host
 infra/phase3                               enrollment and quotes on NitroTPM
 infra/phase4                               verifier deployment and the live checks
+infra/phase5                               trust controller deployment and its checks
 docs                                       architecture diagram, TPM layer notes
 ```
 
@@ -306,8 +347,9 @@ phase README has the full output and every problem found on the way.
 - Phase 1 (NitroTPM probe, golden AMI, kubeadm cluster with Calico): done, 62/62 AMI checks.
 - Phase 2 (reference manifest, KMS signature, Rekor, live node check): done.
 - Phase 3 (TPM layer, enrollment and quotes over mTLS): done. Notes on the TPM layer: [docs/tpm-layer.md](docs/tpm-layer.md).
-- Phase 4 (verifier, trust engine, probes, join-time files, signed NodeTrust): done. check-scoring, check-probes, check-join and check-nodetrust pass; the Phase 4 gate soak is being run.
-- Phase 5 (controller and containment): next.
+- Phase 4 (verifier, trust engine, probes, join-time files, signed NodeTrust): done. check-scoring, check-probes, check-join and check-nodetrust pass, and the Phase 4 gate passed (4-hour soak at 100 on both workers, A11 gradual drift exact).
+- Phase 5 (trust controller and containment): done. Dry run and one live quarantine on NitroTPM workers pass (critical taint 10 s after the finding, quarantine group and ACL deny, evidence snapshot, replacement, Node deleted, control plane cut off from the node); see [infra/phase5/README.md](infra/phase5/README.md), including the bugs the live runs found. The peer-side deny DaemonSet is future work.
+- Phase 6 (metrics, dashboard, alerts) and Phase 7 (evaluation): next.
 
 Known limits, also in the phase READMEs: the NodeTrust signing key is made
 by Terraform instead of being sealed in an enclave; the verifier checks one

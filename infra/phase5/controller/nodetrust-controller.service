@@ -1,0 +1,40 @@
+[Unit]
+Description=nodetrust trust controller (taints, cordon and out-of-band containment from signed NodeTrust)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/nodetrust-controller serve -config /etc/nodetrust/controller/config.json
+Restart=always
+RestartSec=5
+
+# A throwaway user with no capabilities. It reaches the API server with its
+# own client certificate (key handed in as a credential) and AWS with the
+# control plane host's role through IMDS.
+DynamicUser=yes
+StateDirectory=nodetrust-controller
+StateDirectoryMode=0755
+LoadCredential=kube-client.key:/etc/nodetrust/controller/kube-client.key
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

@@ -19,7 +19,7 @@ output "workers_asg" {
 }
 
 output "workers_nacl_id" {
-  description = "Worker subnet network ACL (quarantine denies go below rule 1000)."
+  description = "Worker subnet network ACL."
   value       = aws_network_acl.workers.id
 }
 

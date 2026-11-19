@@ -644,3 +644,20 @@ node is still on the 15 s interval); the edited copy fails with
 create are denied by the admission policy; the verifier's user may write
 nodetrusts/status but not secrets or nodes; an unknown binary reached
 worker 1's signed state as warning 90 within a minute.
+
+### Phase 4 gate result (2026-11-19, ami-034d8e94160b0fecb)
+
+Soak: 46 samples, every 5 minutes from 12:49 to 16:48 UTC (4 hours), on two
+fresh workers: all 92 node samples verified, healthy, score 100, no file
+against the node, no finding, no publish error, and every NodeTrust object
+verified with the pinned key and was under 3 minutes old. (The script's own
+soak line said FAIL because of a bug: the check printed an empty line for a
+clean sample and the script counted any output as bad. Fixed;
+gate-recount.sh recounts a run from its samples.jsonl.)
+
+A11 (gradual drift) on worker 1, one config edit every 5 minutes:
+sshd_config 95 isolated, sudoers 90 unclassified (tier warning), cron file
+85 gradual, systemd unit 80 gradual; the node ended at warning 80, never
+critical. With check-scoring.sh, check-probes.sh and check-join.sh (exact
+scores for A1, A7-A10, A13, A15) this passes the Phase 4 gate. The soak
+was 4 hours instead of the blueprint's 24.

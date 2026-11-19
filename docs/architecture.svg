@@ -20,7 +20,7 @@
   </defs>
 
   <text x="20" y="28" font-size="18" font-weight="bold">nodetrust: how the parts fit together</text>
-  <text x="20" y="47" class="s">Blue: Go packages that make the trust decision. Orange: AWS services. Dashed: Phase 5 (planned). Paths are folders in this repository.</text>
+  <text x="20" y="47" class="s">Blue: Go packages that make the trust decision and act on it. Orange: AWS services. Paths are folders in this repository.</text>
 
   <!-- Build time -->
   <rect class="zone" x="20" y="62" width="1060" height="118" rx="6"/>
@@ -125,6 +125,7 @@
   <text class="s" x="852" y="288">GetInstanceTpmEkPub: the TPM's</text>
   <text class="s" x="852" y="302">real EK, from the cloud</text>
   <text class="s" x="852" y="318">DescribeInstances: AMI, zone, IP</text>
+  <text class="s" x="852" y="332">Auto Scaling: replace a node</text>
   <path class="ln" d="M792,290 L838,290"/>
   <path class="ln" d="M750,170 L750,248"/>
   <text class="lb" x="756" y="226">signed manifest</text>
@@ -142,14 +143,17 @@
   <text class="f" x="868" y="508">nodetrust.yaml</text>
   <path class="ln" d="M792,655 L822,655 L822,480 L854,480"/>
   <text class="lb" x="818" y="640" transform="rotate(-90 818 640)">signed state</text>
-  <rect class="plan" x="856" y="560" width="208" height="110" rx="4"/>
+  <rect class="key" x="856" y="560" width="208" height="124" rx="4"/>
   <text class="t" x="868" y="580">Trust controller</text>
-  <text class="f" x="868" y="596">cmd/controller (Phase 5)</text>
-  <text class="s" x="868" y="614">checks the signature, then</text>
-  <text class="s" x="868" y="628">taints, isolates, snapshots</text>
-  <text class="s" x="868" y="642">and replaces bad nodes</text>
-  <text class="f" x="868" y="658">pkg/provider</text>
-  <path class="dl" d="M960,524 L960,558"/>
-  <text class="s" x="852" y="700">nodetrust-check: checks the</text>
-  <text class="s" x="852" y="714">signatures from kubectl output</text>
+  <text class="f" x="868" y="596">cmd/ and pkg/controller</text>
+  <text class="s" x="868" y="614">checks the signature; taints</text>
+  <text class="s" x="868" y="628">and cordons by tier; critical:</text>
+  <text class="s" x="868" y="642">quarantine, snapshot, replace</text>
+  <text class="f" x="868" y="660">pkg/provider/aws</text>
+  <text class="s" x="868" y="676">(on the control plane host)</text>
+  <path class="ln" d="M960,524 L960,558"/>
+  <path class="ln" d="M1064,640 L1072,640 L1072,342"/>
+  <text class="lb" x="1090" y="500" transform="rotate(-90 1090 500)">AWS API</text>
+  <text class="s" x="852" y="706">only the verifier writes NodeTrust;</text>
+  <text class="s" x="852" y="720">only the controller writes trust taints</text>
 </svg>

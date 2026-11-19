@@ -160,3 +160,12 @@ func (p *Publisher) Publish(ctx context.Context, st *State) error {
 
 // Remove deletes a node's object (the instance is gone).
 func (p *Publisher) Remove(ctx context.Context, id string) error { return p.Kube.Delete(ctx, id) }
+
+// Do sends one request to the API server with the client's certificate and
+// returns the body and status code (for the trust controller's calls).
+func (k *Kube) Do(ctx context.Context, method, path, ctype string, body any) ([]byte, int, error) {
+	return k.do(ctx, method, path, ctype, body)
+}
+
+// APIError builds an error from a failed API server response.
+func APIError(op string, code int, body []byte) error { return apiError(op, code, body) }

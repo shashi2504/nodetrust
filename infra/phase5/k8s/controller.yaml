@@ -1,0 +1,68 @@
+# Phase 5: what the trust controller (User nodetrust-controller, a client
+# certificate from infra/cluster/controller.tf) may do in the cluster.
+# It reads NodeTrust but cannot write it (the nodetrust-writer admission
+# policy allows only the verifier). It taints, cordons and deletes nodes,
+# reads pods to find secrets to rotate, and evicts sensitive pods from
+# degraded nodes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nodetrust-controller
+rules:
+- apiGroups: [trust.k8s-attest.io]
+  resources: [nodetrusts]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [nodes]
+  verbs: [get, list, watch, patch, delete]
+- apiGroups: [""]
+  resources: [pods]
+  verbs: [get, list]
+- apiGroups: [""]
+  resources: [pods/eviction]
+  verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nodetrust-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nodetrust-controller
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: nodetrust-controller
+---
+# Only the controller may add, change or remove trust.k8s-attest.io taints
+# (blueprint 8.1: nothing else writes trust taints). Updates by kubelets
+# (node status) do not touch spec.taints and pass.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: nodetrust-taints
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: [v1]
+      operations: [UPDATE]
+      resources: [nodes]
+  matchConditions:
+  - name: not-the-controller
+    expression: request.userInfo.username != "nodetrust-controller"
+  validations:
+  - expression: >-
+      (has(object.spec.taints) ? object.spec.taints.filter(t, t.key.startsWith('trust.k8s-attest.io/')) : [])
+      == (has(oldObject.spec.taints) ? oldObject.spec.taints.filter(t, t.key.startsWith('trust.k8s-attest.io/')) : [])
+    message: only the nodetrust controller may change trust.k8s-attest.io taints
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: nodetrust-taints
+spec:
+  policyName: nodetrust-taints
+  validationActions: [Deny]

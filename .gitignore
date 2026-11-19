@@ -37,3 +37,5 @@ infra/phase4/phase4-gate-*/
 *.pem
 *.key
 infra/phase4/boot-policy*.json
+infra/phase5/check-controller-*/
+infra/phase5/deploy-controller-*/

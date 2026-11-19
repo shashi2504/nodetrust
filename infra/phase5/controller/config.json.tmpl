@@ -1,0 +1,18 @@
+{
+  "dry_run": @DRYRUN@,
+  "interval": "5s",
+  "max_age": "3m",
+  "breaker_nodes": 2,
+  "breaker_fraction": 0.3,
+  "breaker_window": "10m",
+  "state_dir": "/var/lib/nodetrust-controller",
+  "trust_public_key": "/etc/nodetrust/controller/trust-signing.pub",
+  "kube": {
+    "server": "https://@CPIP@:6443",
+    "ca": "/etc/nodetrust/controller/kube-ca.pem",
+    "client_cert": "/etc/nodetrust/controller/kube-client.pem",
+    "client_key": "/run/credentials/nodetrust-controller.service/kube-client.key"
+  },
+  "quarantine_sg": "@SG@",
+  "nacl": "@NACL@"
+}

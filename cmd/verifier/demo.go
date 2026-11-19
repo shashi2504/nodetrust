@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -13,10 +14,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"nodetrust/pkg/controller"
 	"nodetrust/pkg/eventlog"
 	"nodetrust/pkg/ima"
 	"nodetrust/pkg/imapolicy"
 	"nodetrust/pkg/nodetrust"
+	"nodetrust/pkg/provider"
+	"nodetrust/pkg/provider/fake"
 	"nodetrust/pkg/trust"
 )
 
@@ -29,6 +33,9 @@ import (
 // engine (blueprint 7.2, 7.3). Part 4 classifies four small edits five
 // minutes apart as drift (7.4). Part 5 signs and checks a NodeTrust update
 // and refuses an edited, replayed, moved, foreign or stale copy (8.1).
+// Part 6 runs the trust controller on an in-memory cluster and cloud:
+// tier taints, a forged update ignored, the circuit breaker, and the
+// critical path after approval (8.2-8.4).
 // It exits 1 if any result is not the expected one.
 func demo(args []string) int {
 	fs := flag.NewFlagSet("demo", flag.ContinueOnError)
@@ -42,6 +49,7 @@ func demo(args []string) int {
 	d.scoring()
 	d.drift()
 	d.signed()
+	d.controller()
 	fmt.Printf("\ndemo: %d checks, %d not as expected\n", d.n, d.bad)
 	if d.bad > 0 {
 		return 1
@@ -232,6 +240,81 @@ func (d *demoRun) signed() {
 
 	_, err = nodetrust.Check(&key.PublicKey, s, st.InstanceID, 41, now.Add(10*time.Minute), 5*time.Minute)
 	d.expect(err != nil, "read 10 minutes later: %v", short(err))
+}
+
+func (d *demoRun) controller() {
+	fmt.Println("\n6. trust controller (pkg/controller) on an in-memory cluster and cloud")
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	k, cloud := controller.NewMemKube(), fake.NewContainment()
+	ids := []string{"i-a", "i-b", "i-c", "i-d"}
+	for _, id := range ids {
+		k.AddNode(id)
+		cloud.AddInstance(provider.InstanceID(id))
+	}
+	now := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	dir, err := os.MkdirTemp("", "nodetrust-demo-")
+	if err != nil {
+		d.expect(false, "temp dir: %v", err)
+		return
+	}
+	defer os.RemoveAll(dir)
+	c := &controller.Controller{Kube: k, Cloud: cloud, Pub: &key.PublicKey, Cfg: controller.DefaultConfig, StateDir: dir,
+		Now: func() time.Time { return now }, Logf: func(f string, a ...any) { fmt.Printf("     log: "+f+"\n", a...) }}
+	_ = c.Load()
+	seq := map[string]uint64{}
+	publish := func(id, tier string, score float64, critical bool) {
+		seq[id]++
+		st := &nodetrust.State{InstanceID: id, Seq: seq[id], IssuedAt: now, Tier: tier, Score: score, Critical: critical, State: "verified"}
+		if critical {
+			st.Findings = []trust.Finding{{Type: trust.CriticalBinary, Path: "/usr/bin/kubelet", Detail: "mismatch: not the reference binary"}}
+		}
+		k.NTs[id], _ = nodetrust.Sign(key, st)
+	}
+	taints := func(id string) string {
+		n := k.NodeMap["ip-"+id]
+		if n == nil {
+			return "node deleted"
+		}
+		var s []string
+		for _, t := range n.Taints {
+			s = append(s, t.Key[len(controller.Prefix):]+":"+t.Effect)
+		}
+		if n.Unschedulable {
+			s = append(s, "cordoned")
+		}
+		if len(s) == 0 {
+			return "no trust taints"
+		}
+		return fmt.Sprint(s)
+	}
+	round := func() { _ = c.Reconcile(context.Background()) }
+
+	for _, id := range ids {
+		publish(id, trust.Healthy, 100, false)
+	}
+	publish("i-b", trust.Warning, 90, false)
+	publish("i-c", trust.Degraded, 72.5, false)
+	round()
+	d.expect(taints("i-a") == "no trust taints", "healthy i-a: %s", taints("i-a"))
+	d.expect(taints("i-b") == "[warning:PreferNoSchedule]", "warning i-b: %s", taints("i-b"))
+	d.expect(taints("i-c") == "[degraded:NoSchedule cordoned]", "degraded i-c: %s", taints("i-c"))
+
+	other, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	forged, _ := nodetrust.Sign(other, &nodetrust.State{InstanceID: "i-a", Seq: 99, IssuedAt: now, Tier: trust.Untrusted, Critical: true})
+	k.NTs["i-a"] = forged
+	round()
+	d.expect(len(cloud.Calls()) == 0 && taints("i-a") == "no trust taints", "a forged critical update for i-a is ignored")
+
+	publish("i-a", trust.Healthy, 100, true)
+	publish("i-d", trust.Healthy, 100, true)
+	round()
+	d.expect(taints("i-a") == "node deleted" && len(cloud.Calls()) == 3,
+		"critical i-a: tainted, isolated, snapshotted, replaced (%d AWS calls), Node deleted", len(cloud.Calls()))
+	d.expect(taints("i-d") == "[critical:NoExecute cordoned]" && len(cloud.Calls()) == 3,
+		"critical i-d, 2 of 4 nodes in 10 min: tainted, AWS steps held by the circuit breaker")
+	_ = controller.Approve(dir, "i-d")
+	round()
+	d.expect(len(cloud.Calls()) == 6 && taints("i-d") == "node deleted", "after operator approval i-d is contained (%d AWS calls)", len(cloud.Calls()))
 }
 
 func short(err error) string {

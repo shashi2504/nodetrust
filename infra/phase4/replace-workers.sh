@@ -3,7 +3,9 @@
 # critical path will do one node at a time), so a test that leaves workers
 # critical can be followed by another on clean nodes without rebuilding the
 # cluster. The verifier drops the old instances when they leave the
-# inventory and enrolls the new ones.
+# inventory and enrolls the new ones. Node objects of terminated workers
+# are deleted (kubeadm has no cloud controller to do it), so they do not
+# pile up as NotReady nodes.
 #
 # Usage: ./replace-workers.sh
 set -euo pipefail
@@ -16,6 +18,7 @@ REGION="$(region)"
 aws_ready
 ASG="$(terraform -chdir=../cluster output -raw workers_asg)"
 VID="$(terraform -chdir=../cluster output -raw verifier_id)"
+CPID="$(terraform -chdir=../cluster output -raw controlplane_id)"
 # shellcheck disable=SC2016
 mapfile -t OLD < <(aws autoscaling describe-auto-scaling-groups --region "$REGION" --auto-scaling-group-names "$ASG" \
 	--query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' --output text | tr '\t' '\n' | sed '/^$/d')
@@ -27,6 +30,22 @@ for id in "${OLD[@]}"; do
 		--no-should-decrement-desired-capacity >/dev/null
 done
 aws ec2 wait instance-terminated --region "$REGION" --instance-ids "${OLD[@]}"
+# Delete the Node objects of every worker whose instance is gone (these and
+# any left from earlier runs).
+K='kubectl --kubeconfig /etc/kubernetes/admin.conf'
+nodes="$(run_ssm_json "$REGION" "$CPID" "$K get nodes -o jsonpath='{range .items[*]}{.spec.providerID}{\" \"}{.metadata.name}{\"\\n\"}{end}'" 2>/dev/null || true)"
+gone=()
+while read -r pid name; do
+	id="${pid##*/}"
+	[[ "$id" == i-* ]] || continue
+	st="$(aws ec2 describe-instances --region "$REGION" --instance-ids "$id" \
+		--query 'Reservations[0].Instances[0].State.Name' --output text 2>/dev/null || echo terminated)"
+	case "$st" in terminated | shutting-down | None) gone+=("$name") ;; esac
+done <<<"$nodes"
+if [ "${#gone[@]}" -gt 0 ]; then
+	log "deleting ${#gone[@]} Node object(s) of terminated workers: ${gone[*]}"
+	run_ssm_json "$REGION" "$CPID" "$K delete node ${gone[*]} --ignore-not-found" >/dev/null || log "could not delete them (not needed for the checks)"
+fi
 log "old workers terminated; waiting for $WANT new ones InService"
 deadline=$((SECONDS + 900))
 while :; do
