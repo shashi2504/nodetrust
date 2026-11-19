@@ -1,0 +1,42 @@
+{
+  "mutable": [
+    {"pattern": "/etc/machine-id", "why": "generated at first boot (cloud-init clean empties it in the image)"},
+    {"pattern": "/etc/hostname", "why": "set by cloud-init from the instance metadata"},
+    {"pattern": "/etc/hosts", "why": "may be rewritten by cloud-init"},
+    {"pattern": "/etc/netplan/50-cloud-init.yaml", "why": "network config rendered by cloud-init per instance"},
+    {"pattern": "/etc/resolv.conf", "why": "rewritten at boot with the DNS servers from DHCP"},
+    {"pattern": "/boot/grub/grubenv", "why": "GRUB records boot state (recordfail) here at every boot; what GRUB actually loads is measured into PCRs 8-9 and checked in Phase 4"}
+  ],
+  "runtime": [
+    {"pattern": "/var/lib/cloud/", "why": "cloud-init instance data, including the worker bootstrap user data (its content is a Phase 4 check against the launch template)"},
+    {"pattern": "/usr/lib/cloud-init/clouddir/", "why": "cloud-init working directory; growpart resizes the root partition here at first boot"},
+    {"pattern": "/etc/netplan/50-cloud-init.yaml.*", "sha256": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"], "why": "empty temp file cloud-init writes while rendering netplan"},
+    {"pattern": "/.ismount-test-file", "sha256": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"], "why": "empty probe file written at boot to test whether / is a mount point"},
+    {"pattern": "/var/lib/dhcpcd/", "why": "DHCP lease written at boot (one is left in the image from the build)"},
+    {"pattern": "/var/cache/apparmor/", "sha256": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"], "why": "AppArmor writes its profile cache through empty temp files"},
+    {"pattern": "/var/lib/snapd/", "why": "snapd state; the snaps themselves are in the manifest (mounted squashfs images)"},
+    {"pattern": "/var/cache/snapd/", "sha256": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"], "why": "empty temp files snapd writes while refreshing its command and section caches"},
+    {"pattern": "/var/lib/kubelet/pki/", "why": "kubelet client and serving certificates and keys: unique per node and rotated, so checked by path only (blueprint 10.4); kubelet's config files are checked against the join reference"},
+    {"pattern": "/var/lib/kubelet/pods/", "why": "pod volumes, termination logs and plugin markers: workload data, not node configuration"},
+    {"pattern": "/var/lib/kubelet/pod-resources/", "why": "kubelet's pod-resources socket directory"},
+    {"pattern": "/var/lib/kubelet/.*", "sha256": ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"], "why": "empty temp files kubelet creates for atomic writes"},
+    {"pattern": "/var/lib/kubelet/plugins/", "why": "CSI plugin sockets and state"},
+    {"pattern": "/var/lib/kubelet/plugins_registry/", "why": "plugin registration sockets"},
+    {"pattern": "/var/lib/kubelet/device-plugins/", "why": "device plugin sockets and checkpoint"},
+    {"pattern": "/var/lib/kubelet/checkpoints/", "why": "kubelet checkpoints"},
+    {"pattern": "/var/lib/kubelet/*_manager_state", "why": "CPU, memory and DRA manager state written by kubelet"},
+    {"pattern": "/var/lib/kubelet/*_pods_state", "why": "allocated and actuated pod resources (in-place resize checkpoints), written by kubelet and read back when it restarts"},
+    {"pattern": "/var/lib/kubelet/image_manager/", "why": "kubelet's records of pulled images, read back when it restarts"},
+    {"pattern": "/var/lib/kube-proxy/", "why": "kube-proxy ConfigMap as seen inside the kube-proxy container: a pod volume on the node's disk, so it is measured, and IMA records paths relative to the reading process's mount namespace"},
+    {"pattern": "/var/lib/containerd/", "why": "image content and snapshots read by containerd; files inside containers are not measured (overlayfs is excluded by the IMA policy)"},
+    {"pattern": "/etc/cni/net.d/calico-kubeconfig", "why": "Calico's kubeconfig with a service-account token that is rotated; the CNI config itself is checked against the join reference"},
+    {"pattern": "/host/etc/cni/net.d/calico-kubeconfig", "why": "the same kubeconfig as calico-node rewrites it through its /host/etc/cni/net.d hostPath mount when the token is refreshed (container-relative path, seen about 15 minutes after a node starts)"},
+    {"pattern": "/var/lib/cni/", "why": "CNI results per pod"},
+    {"pattern": "/var/lib/calico/", "why": "calico-node state"},
+    {"pattern": "/var/log/", "why": "logs (journald writes while root reads, so ToMToU violations are expected here)"},
+    {"pattern": "/var/lib/systemd/", "why": "systemd state (random seed, timers, credentials)"},
+    {"pattern": "/var/lib/amazon/ssm/", "why": "documents run by the SSM agent as root: the remote admin channel; recorded so every SSM command is visible in the log"},
+    {"pattern": "/etc/ssh/ssh_host_*", "why": "host keys generated at first boot by cloud-init (ssh itself is masked)"},
+    {"pattern": "/var/lib/nodetrust/", "why": "nodetrust runtime state"}
+  ]
+}

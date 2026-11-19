@@ -1,0 +1,105 @@
+# Step 4.7: the NodeTrust resource (blueprint 8.1). One cluster-scoped object
+# per worker, named by its EC2 instance ID, written only by the verifier.
+# Applied by deploy-verifier.sh on the control plane.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nodetrusts.trust.k8s-attest.io
+spec:
+  group: trust.k8s-attest.io
+  scope: Cluster
+  names:
+    plural: nodetrusts
+    singular: nodetrust
+    kind: NodeTrust
+    shortNames: [nt]
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - {name: Tier, type: string, jsonPath: .status.tier}
+    - {name: Score, type: number, jsonPath: .status.score}
+    - {name: Critical, type: boolean, jsonPath: .status.critical}
+    - {name: Unattested, type: boolean, jsonPath: .status.unattested}
+    - {name: Seq, type: integer, jsonPath: .status.seq}
+    - {name: Issued, type: date, jsonPath: .status.issuedAt}
+    schema:
+      openAPIV3Schema:
+        type: object
+        description: >-
+          The verifier's signed view of one worker. Only status.signed counts:
+          the other status fields are copies for kubectl and are not signed.
+        properties:
+          spec:
+            type: object
+            properties:
+              instanceID: {type: string}
+          status:
+            type: object
+            properties:
+              signed:
+                type: object
+                description: base64 JSON state, its ECDSA P-256 signature, and the signing key's ID
+                properties:
+                  payload: {type: string}
+                  signature: {type: string}
+                  keyID: {type: string}
+              tier: {type: string}
+              score: {type: number}
+              critical: {type: boolean}
+              unattested: {type: boolean}
+              seq: {type: integer}
+              issuedAt: {type: string}
+---
+# The verifier (client certificate CN nodetrust-verifier) may write NodeTrust
+# objects and nothing else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nodetrust-verifier
+rules:
+- apiGroups: [trust.k8s-attest.io]
+  resources: [nodetrusts, nodetrusts/status]
+  verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nodetrust-verifier
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nodetrust-verifier
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: nodetrust-verifier
+---
+# Nobody else writes NodeTrust, cluster admins included (RBAC cannot say
+# that: system:masters bypasses it; admission policies still apply).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: nodetrust-writer
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [trust.k8s-attest.io]
+      apiVersions: ["*"]
+      operations: [CREATE, UPDATE, DELETE]
+      resources: [nodetrusts, nodetrusts/status]
+  validations:
+  - expression: request.userInfo.username == 'nodetrust-verifier'
+    message: only the nodetrust verifier may write NodeTrust objects
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: nodetrust-writer
+spec:
+  policyName: nodetrust-writer
+  validationActions: [Deny]

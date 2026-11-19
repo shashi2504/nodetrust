@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check go.mod and go.sum are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Format
+        run: make fmt-check
+
+      - name: Vet
+        run: make vet
+
+      - name: Unit tests
+        run: make test
+
+      - name: Unit tests with TPM simulator
+        run: make test-sim
+
+      - name: Python tests (IMA replay, manifest)
+        run: make test-py
+
+      - name: Build
+        run: make build

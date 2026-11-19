@@ -1,0 +1,46 @@
+[Unit]
+Description=nodetrust verifier (enrollment and continuous attestation of workers)
+Documentation=file:///etc/nodetrust/verifier/README
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/nodetrust-verifier serve -config /etc/nodetrust/verifier/config.json
+Restart=always
+RestartSec=10
+
+# Runs as a throwaway user with no capabilities. The private keys (agent mTLS
+# client, API server client, NodeTrust signing) and the join reference (which
+# holds the cluster's bootstrap token inside the join configuration
+# template) are handed in as systemd credentials, so the files stay
+# root-only and the user never needs read access to them.
+DynamicUser=yes
+StateDirectory=nodetrust-verifier
+StateDirectoryMode=0700
+LoadCredential=client.key:/etc/nodetrust/verifier/client.key
+LoadCredential=join-reference.json:/etc/nodetrust/verifier/join-reference.json
+LoadCredential=kube-client.key:/etc/nodetrust/verifier/kube-client.key
+LoadCredential=trust-signing.key:/etc/nodetrust/verifier/trust-signing.key
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

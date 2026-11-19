@@ -1,0 +1,7 @@
+{
+  "_comment": "Rules for the step 2.4 test harness only (check-node.sh, recheck.sh), which runs scripts and writes snapshots under /root on a worker. Merged into runtime-policy.json by those scripts; never deployed to the verifier service.",
+  "runtime": [
+    {"pattern": "/root/nt/", "why": "TEST HARNESS ONLY (step 2.4 scripts run through SSM)"},
+    {"pattern": "/root/nt-ima/", "why": "TEST HARNESS ONLY (step 2.4 snapshots)"}
+  ]
+}

@@ -1,0 +1,63 @@
+#!/bin/bash
+# Worker bootstrap, rendered by Terraform into the launch template (compute.tf).
+# Note for editors: $${...} is Terraform interpolation in this file; bash
+# variables are written as plain $VAR without braces.
+set -euxo pipefail
+exec > >(tee -a /var/log/nodetrust-bootstrap.log) 2>&1
+
+IMDS=http://169.254.169.254/latest
+TOKEN=$(curl -sf -X PUT "$IMDS/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+IID=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" "$IMDS/meta-data/instance-id")
+AZ=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" "$IMDS/meta-data/placement/availability-zone")
+
+# File discovery: the kubeconfig carries the cluster CA, so the worker pins
+# it instead of trusting whatever answers on the API address.
+install -d -m 0700 /etc/kubernetes/nodetrust
+cat >/etc/kubernetes/nodetrust/discovery.conf <<'NT_EOF'
+apiVersion: v1
+kind: Config
+clusters:
+- name: kubernetes
+  cluster:
+    certificate-authority-data: ${ca_cert_b64}
+    server: https://${cp_ip}:6443
+contexts:
+- name: bootstrap
+  context:
+    cluster: kubernetes
+    user: tls-bootstrap
+current-context: bootstrap
+users:
+- name: tls-bootstrap
+  user:
+    token: ${token}
+NT_EOF
+chmod 0600 /etc/kubernetes/nodetrust/discovery.conf
+
+# New workers join with the unattested taint (blueprint 10.4); the trust
+# controller removes it after the first passing attestation (Phase 5).
+cat >/etc/kubernetes/nodetrust/join.yaml <<NT_EOF
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: JoinConfiguration
+discovery:
+  file:
+    kubeConfigPath: /etc/kubernetes/nodetrust/discovery.conf
+  tlsBootstrapToken: ${token}
+nodeRegistration:
+  taints:
+  - key: trust.k8s-attest.io/unattested
+    effect: NoSchedule
+  kubeletExtraArgs:
+  - name: provider-id
+    value: aws:///$AZ/$IID
+NT_EOF
+chmod 0600 /etc/kubernetes/nodetrust/join.yaml
+
+echo "nodetrust: waiting for the API server at ${cp_ip}:6443"
+for _ in $(seq 1 120); do
+  curl -sk --max-time 5 "https://${cp_ip}:6443/livez" >/dev/null && break
+  sleep 10
+done
+
+kubeadm join --config /etc/kubernetes/nodetrust/join.yaml
+echo "nodetrust: worker joined"

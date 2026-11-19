@@ -1,0 +1,611 @@
+{
+ "events": [
+  {
+   "pcr": 0,
+   "type": "EV_NO_ACTION",
+   "sha256": null
+  },
+  {
+   "pcr": 0,
+   "type": "EV_S_CRTM_VERSION",
+   "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+  },
+  {
+   "pcr": 0,
+   "type": "EV_EFI_PLATFORM_FIRMWARE_BLOB",
+   "sha256": "62196c08db63a4bf9d015105f5ec1592f8deae09975296ba629fb428d47bce81"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_DRIVER_CONFIG",
+   "sha256": "ccfc4bb32888a345bc8aeadaba552b627d99348c767681ab3141f5b01e40a40e"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_DRIVER_CONFIG",
+   "sha256": "d4402dfdc84ece641229c1356db35d175ee31b45c6b60dd1069505cdd7457937"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_DRIVER_CONFIG",
+   "sha256": "63c0ee78eb49b91ac213b03768a827ebf9b12370f65851b19a883bf32eaf2a14"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_DRIVER_CONFIG",
+   "sha256": "f54dbc80b0c8e64cf184a8ad3314295153285b493b921feb67de14c6cadd43f4"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_DRIVER_CONFIG",
+   "sha256": "9f75b6823bff6af1024a4e2036719cdd548d3cbc2bf1de8e7ef4d0ed01f94bf9"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 1,
+   "type": "EV_EFI_VARIABLE_BOOT",
+   "sha256": "771042ab19903664f075c65613976a8e20dfa482966ab505d6695e84ade772f5"
+  },
+  {
+   "pcr": 1,
+   "type": "EV_EFI_VARIABLE_BOOT",
+   "sha256": "1685e30324999daaf69142db7925d19816feee278387f71b80ae847293b9384b"
+  },
+  {
+   "pcr": 1,
+   "type": "EV_EFI_VARIABLE_BOOT",
+   "sha256": "3197be1e300fa1600d1884c3a4bd4a90a15405bfb546cf2e6cf6095f8c362a93"
+  },
+  {
+   "pcr": 1,
+   "type": "EV_EFI_VARIABLE_BOOT",
+   "sha256": "d9507bf0466c7d0cd4ae10b2dd292200513dc95856ea17c217b0720837ac4f04"
+  },
+  {
+   "pcr": 4,
+   "type": "EV_EFI_ACTION",
+   "sha256": "3d6772b4f84ed47595d72a2c4c5ffd15f5bb72c7507fe26f2aaee2c69d5633ba"
+  },
+  {
+   "pcr": 0,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 1,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 2,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 3,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 4,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 5,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 6,
+   "type": "EV_SEPARATOR",
+   "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_AUTHORITY",
+   "sha256": "4d4a8e2c74133bbdc01a16eaf2dbb5d575afeb36f5d8dfcf609ae043909e2ee9"
+  },
+  {
+   "pcr": 5,
+   "type": "EV_EFI_GPT_EVENT",
+   "sha256": "4adc12d0cfbac878f70135600fb087afca40aae1166685676aac07eeabed56c5"
+  },
+  {
+   "pcr": 4,
+   "type": "EV_EFI_BOOT_SERVICES_APPLICATION",
+   "sha256": "724de6844dd0fe618ba5776c7bca0728be38a6544e24e44ef259b987b7abce80"
+  },
+  {
+   "pcr": 14,
+   "type": "EV_IPL",
+   "sha256": "2f196b05a0564764cca674175ecd97898e74ed3891c7c63ce6f17dc82603164a"
+  },
+  {
+   "pcr": 14,
+   "type": "EV_IPL",
+   "sha256": "8d8a3aae50d5d25838c95c034aadce7b548c9a952eb7925e366eda537c59c3b0"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_AUTHORITY",
+   "sha256": "e8e9578f5951ef16b1c1aa18ef02944b8375ec45ed4b5d8cdb30428db4a31016"
+  },
+  {
+   "pcr": 14,
+   "type": "EV_IPL",
+   "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+  },
+  {
+   "pcr": 7,
+   "type": "EV_EFI_VARIABLE_AUTHORITY",
+   "sha256": "68bdff38e48c399326ca7356eb992693d13301f3925caf10e7b39dc9240789cd"
+  },
+  {
+   "pcr": 4,
+   "type": "EV_EFI_BOOT_SERVICES_APPLICATION",
+   "sha256": "4caffb530989433f184353c48d8150fcdce6037933ab129249f50f0068cf1815"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "01a550946685e21e873121bc2d23b089eabd833945ea78c6ed554e97d4c2c3ed"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "01a550946685e21e873121bc2d23b089eabd833945ea78c6ed554e97d4c2c3ed"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "71903c223719660c766b6253cbd8570fb14dd66f66e8c177c8cffc020e488018"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "97a14107305bbdb5eea84815ab8ddff21028cfaf65f09178ebf3cab85803b6a2"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "aef695413d1a1b9eaff753a15512d0ba79e23e5524033eec20c7a1c7c20eb1c4"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "32fc7f5de8c0a5dc0b1e7eb609ca31a77eb3475539e1d97a4543dca1b9b26c57"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "1b766f38a94927fe9b7bc1e809f0363e778e14c601e800faea271a2e75d3fc43"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "46f888c52f36baf9b62d60bc8d06426a314aad5a0ff86a4362a91c2512a1df9c"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "7bab9fbe716a627d300c67b6c28f2b6cd0aca9b3182b76c992f23d40d2466b67"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "03a187d017483a99f19ba973a486a3c8d9aad52d16d5c6c38d38056fda73dae4"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "6ad77e4fde8bf2232893cf4ac273a050fd0e1f3f4e4098c3511a52bd8bda87f6"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "f64122858064885ef0733e42c6a3d2d3fd642671f714db0d974b880c0f087430"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "0e3a17e0c48e42d79f4d1576e7f787c911239510586505c326143b9b268bdd65"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "f8b99f77983990e8804864cade91f361b5b6600cc2832febaef878ac8b44d27e"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "f64122858064885ef0733e42c6a3d2d3fd642671f714db0d974b880c0f087430"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "d2b92983e66aff99982fe5af55e0f9277dc0f8879934e17b00147e1f4156179e"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "82a4a14e43a4f76118ae63285d0af05af139f260fae57b2c20737a1c1df3382b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "ce8124bc1b0fbc0cb5cd47338ca0c7d5f5446d79936e443a201d96b192a7bd65"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "3a118940bf2675007df3368cb6d45cf2756f328d3e75daf69a971dd21bd1bc58"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4568361fb7581b31a42d645ab534302fb9f742adaa37b7fde152215d69e259fb"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "09f17d4dfb4b97f16246632c21b1ac2125c95c148899eee5069fbb1b34365513"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4af0bb370c9e3b7982027d02e04c935e32d52b528007476bfc50d36d1b86815e"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "ce8124bc1b0fbc0cb5cd47338ca0c7d5f5446d79936e443a201d96b192a7bd65"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "df24f1cae6b428fdd09bc14b06df255f93060ff05d56c3127724168596f73d5f"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "fed7c930939012174a23271f9fa177a39891cd1baf6ccd22bccce96acd0514d1"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "82a4a14e43a4f76118ae63285d0af05af139f260fae57b2c20737a1c1df3382b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4568361fb7581b31a42d645ab534302fb9f742adaa37b7fde152215d69e259fb"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "61caa54fc24ba8b3e79be63f375a08f374244e4ede8e0d6080060aa3fa5f7fbb"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "d3a793f471b6bfe8d783f5e629314cad4763d48986a8cd4df25475334b40f49b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "cfa4676ffe751d1547e77a8d66a033b59b3eed3400d9b3a305d2601891ab0e59"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "2436afe3cb181454ab807d6ca526ed3132dc1759787f9ed3f2f148e86948e978"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "eb97ee12d3f873aada1c5cd0c844e3a80416b6aed3c42c9f573e4c4b809b89ed"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "01ffa4a5eae6be98974c1b75e839f442eed9d9f5c1d65c03d355e04fc81d2873"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "207cda95fd859189d016c7c2cc03b9c05672984589e4809e1dcee665d629cf7d"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "6f18799fe0ecb5c4bb4c0695a3094dc9841c940c3b463e14c25e444246348a2a"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "e3f1ab9cf860242bcd433570709e5b12608a768c245ed52c741c1b477f7e51d2"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "f0b4b3c23103828ea2fa05044a2cfce5efc9d15e99ffb9c61d7349c1303741af"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "5049802d85c95cc52a8d1495e21db7c7dc2519a12202ea15a8cc1cc7b123bbf0"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "a1d598d76cd92cdf36ef379aae43ded1cc512bd74a17e5b03fc901015b899755"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "f249e761a7e37510f8acf59142c117444c3aa1bc5a719ae7eab60d3b7109180a"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "22e041251eb54eeb3270245759aa3e8bd3b77a647db988b681b1eafc6960aa45"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "e04e7285bda58757d6b07589fce93c31b43cbb986c6f26cac0c4b1b2d3d9e459"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "82bb6f09a0fe6a01382b9a0e70dbaf8f698f7dc59fb1a471ad74e542d152198f"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "5d487e285706b36d48eff03e56383e4692de24b867b38fcb3c5896fd222a5957"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "2b632b145c9a0b3c13ebf6661ae3128d9eb8bc00ae7594c744ec6b590b906833"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "b49a7fd5edc02f168f0de51309313278dc2347c0f83a5cbedcb8974790a5e7e8"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "5d487e285706b36d48eff03e56383e4692de24b867b38fcb3c5896fd222a5957"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "8a0672215643524931da9a98294d41f13a6e324adf780e239ef0b5ea033255bd"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "d0b128de61633eaded03eaf1923aaed67e1973fb10714ad91515906104cd640f"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "ba0a0eba7367337a506a6c7bb223356ee9d83badd3c6ee91cca8c977bfe23c5e"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4379e3a5fea9ca2de50fd7ae4cdb17c78cc42fb3c3744b270623f1519e2c2e4f"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "6f5599ee61f62c451a68931852f20cf7ed872583ee8b0f83e3df702c65a77c99"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "bf5d10a466c0f77818990a9d0fdcc8fa2c4561ba92912d5fbc9d4ac1e31a00fb"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "a57e067e286efc4eea89659d40f13a38cc1792e4277bed820ded674c94bf2ead"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "64bda8f65b1585d7868248a292c449660cc8f75075c10d87ae59a4db401ce119"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "cfa4676ffe751d1547e77a8d66a033b59b3eed3400d9b3a305d2601891ab0e59"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4e7a22f96bae467df0f26975e0bf7614d6b92993301c65bae6a85c6530e460bf"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "ce2cc20777ba8d3bc75b662163c3abe370344d4bae17d75fb5bd408d1fb6badf"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "7626abd8be7442c2e575364a3e95cb3a3b533c58afbba402d2bdabdff85d29c7"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4568361fb7581b31a42d645ab534302fb9f742adaa37b7fde152215d69e259fb"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "d71353f5368eb2c1280590928128979bd96ea8db1e8c81493f7878383b76ab3b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "2fa8065d9ee309384d35f8d530186b776d26e1bb5632f89a46d56e93b140282b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "15a5018b0177cf9c49c0b97911df67e7f2c193d3613e3fc4c9eb98a2b5d06fcc"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "b55d84bbb0a00f175ebbc6ca167f18dd6a9cb49b141535bfcc6c4ef9c53b1866"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "141dcfd03b1736e86f617122e7f31cffe89f7cf0faa773f1bced28f7f0c1fa13"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "6c4674d4c652ee67b98a6206d7541ccbf2d5dc0a18dae31ad66e82c794c49784"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "18865468f2e4bd9f0cc4ffdda1335f405d06df8d6ff183b373f50e08e81f924d"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "62cd76d31ca3d10d742e46c6ff171046ce19dd90f361a827fec6571e59c24794"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "b838a4d2860c81058105fbb1907a1fb7f60b65591b099b3b000d9b31d8d2fb20"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "a8dfc611cae80d5951ba9a614a1f440ca362237415cda2a71c651d9b7c904c5f"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "82a4a14e43a4f76118ae63285d0af05af139f260fae57b2c20737a1c1df3382b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "d1bbd7d573d636850a1a9efbcfac9e589f1bcd34f617b16bc7872275ea036c3d"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "cbd682f67edd4169b6a15e6a3aed600cb3705108c6b7a312377db75e8268843f"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "cab0d1e698f1840109aff4fb2a00c3bc3fb304aa48098773a9b81b3cb3996e6e"
+  },
+  {
+   "pcr": 4,
+   "type": "EV_EFI_BOOT_SERVICES_APPLICATION",
+   "sha256": "43fe96482536d1048bf3a3cb4bf306fb22f7cd12f26950d5185bb18fb3039d1e"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "b09cae41d45190d1dd31ef15057220d65d6fe86a061a6ef1b6f424470d6d2c37"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "fb77920ad4cb1c152d73d7758d0d887a40e72733cf0c7bb3e7460ad84001a29a"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_IPL",
+   "sha256": "85548ac86ecc5dbd1b587062d765e298a074ac972d88d0e6a0c918d7ffbf145b"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "76bc6c6d70ce34a24bda263584ed03d0fd5d94f90ca206dd5e500b0fe98b3df2"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "cfa4676ffe751d1547e77a8d66a033b59b3eed3400d9b3a305d2601891ab0e59"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "d080cf6bd163499d537b17a20632e5d37a982b79f708c139694dd31930c37cd2"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "4e7a22f96bae467df0f26975e0bf7614d6b92993301c65bae6a85c6530e460bf"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "6b2c97f60740ba1ed873c8a1344792aefe3ba93ed8f20db8e89193526cff5fbb"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "2436afe3cb181454ab807d6ca526ed3132dc1759787f9ed3f2f148e86948e978"
+  },
+  {
+   "pcr": 8,
+   "type": "EV_IPL",
+   "sha256": "a05839fd9bfebe3bde7739df6a1983a0008d37e25a47ffa6a164b4a22050c80f"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_EVENT_TAG",
+   "sha256": "e3fdea407aa48d77f8db76c79b272fab138ba94f1be84478811e157a2aa1543c"
+  },
+  {
+   "pcr": 9,
+   "type": "EV_EVENT_TAG",
+   "sha256": "85548ac86ecc5dbd1b587062d765e298a074ac972d88d0e6a0c918d7ffbf145b"
+  },
+  {
+   "pcr": 5,
+   "type": "EV_EFI_ACTION",
+   "sha256": "d8043d6b7b85ad358eb3b6ae6a873ab7ef23a26352c5dc4faa5aeedacf5eb41b"
+  },
+  {
+   "pcr": 5,
+   "type": "EV_EFI_ACTION",
+   "sha256": "b54f7542cbd872a81a9d9dea839b2b8d747c7ebd5ea6615c40f42f44a6dbeba0"
+  }
+ ],
+ "pcrs": {
+  "0": "737f767a12f54e70eecbc8684011323ae2fe2dd9f90785577969d7a2013e8c12",
+  "1": "1e37f35669185d053724fc9d7dc63f746cd19a78dfb67a56b3cbf90bfc6f6d43",
+  "2": "3d458cfe55cc03ea1f443f1562beec8df51c75e14a9fcf9a7234a13f198e7969",
+  "3": "3d458cfe55cc03ea1f443f1562beec8df51c75e14a9fcf9a7234a13f198e7969",
+  "4": "eee19b8e266a8135c161329981fceb1d7cb2cb8c2fe5db1f9be8a858dbc2046f",
+  "5": "c46935cba9c1458ae88f56e96658db4dd1a0488500bf65e812ca770232a2ac49",
+  "6": "3d458cfe55cc03ea1f443f1562beec8df51c75e14a9fcf9a7234a13f198e7969",
+  "7": "e496047392a7370c414f6447385916cb163ceba2e7742dc8ad89ee825bcce4cb",
+  "8": "89a5bc24be88baec86b544bf04cb261ec837d7ee21c301b6fb0ef364d8e73adf",
+  "9": "2a5c6997a957f4b2003830a131857bc9eb401bab8cd557833b75402e3b6f41fa"
+ }
+}

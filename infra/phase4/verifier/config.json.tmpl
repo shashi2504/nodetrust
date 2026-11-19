@@ -1,0 +1,22 @@
+{
+  "manifest_bucket": "@BUCKET@",
+  "allowed_amis": @AMIS@,
+  "worker_filters": {"tag:role": ["worker"], "tag:project": ["nodetrust"]},
+  "agent_port": 9443,
+  "interval": "@INTERVAL@",
+  "state_dir": "/var/lib/nodetrust-verifier",
+  "client_cert": "/etc/nodetrust/verifier/client.pem",
+  "client_key": "/run/credentials/nodetrust-verifier.service/client.key",
+  "signing_key": "/etc/nodetrust/verifier/manifest-signing-key.pem",
+  "rekor_key": "/etc/nodetrust/verifier/rekor-public-key.pem",
+  "runtime_policy": "/etc/nodetrust/verifier/runtime-policy.json",
+  "boot_policy": "/etc/nodetrust/verifier/boot-policy.json",
+  "join_reference": "/run/credentials/nodetrust-verifier.service/join-reference.json",
+  "kube": {
+    "server": "https://@CPIP@:6443",
+    "ca": "/etc/nodetrust/verifier/kube-ca.pem",
+    "client_cert": "/etc/nodetrust/verifier/kube-client.pem",
+    "client_key": "/run/credentials/nodetrust-verifier.service/kube-client.key"
+  },
+  "trust_signing_key": "/run/credentials/nodetrust-verifier.service/trust-signing.key"
+}
