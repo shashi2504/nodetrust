@@ -1,0 +1,42 @@
+# The alerts of blueprint Section 9: any critical finding, any degraded
+# node, a gradual-drift event, an open circuit breaker, and attestation age
+# over 3 intervals. They fire in Prometheus; sending them on (Alertmanager
+# to email or chat) is left out, as there is nowhere to send them in this
+# test account.
+groups:
+  - name: nodetrust
+    rules:
+      - alert: NodeTrustCritical
+        expr: node_trust_critical == 1
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.node }} has a critical finding; the controller starts the critical path"
+
+      - alert: NodeTrustDegraded
+        expr: node_trust_tier{tier="degraded"} == 1
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.node }} is degraded (score below 75): cordoned, sensitive pods evicted"
+
+      - alert: NodeTrustGradualDrift
+        expr: increase(node_trust_drift_events_total{class="gradual"}[30m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.node }} is drifting: three or more score drops in 30 minutes"
+
+      - alert: TrustCircuitBreakerOpen
+        expr: trust_circuit_breaker_open == 1
+        labels:
+          severity: critical
+        annotations:
+          summary: "automatic containment is on hold; approve with nodetrust-controller approve -instance <id>"
+
+      - alert: NodeAttestationStale
+        expr: node_attestation_age_seconds > 3 * node_attestation_interval_seconds
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.node }}: no valid quote for {{ $value | humanizeDuration }} (over 3 challenge intervals)"

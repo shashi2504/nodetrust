@@ -28,6 +28,7 @@ locals {
   ingress_rules = {
     cp_api_from_workers   = { sg = aws_security_group.controlplane.id, src = aws_security_group.workers.id, proto = "tcp", port = 6443 }
     cp_api_from_verifier  = { sg = aws_security_group.controlplane.id, src = aws_security_group.verifier.id, proto = "tcp", port = 6443 }
+    cp_metrics_from_verifier = { sg = aws_security_group.controlplane.id, src = aws_security_group.verifier.id, proto = "tcp", port = 9102 } # controller /metrics (Phase 6)
     cp_vxlan_from_workers = { sg = aws_security_group.controlplane.id, src = aws_security_group.workers.id, proto = "udp", port = 4789 }
     cp_typha_from_workers = { sg = aws_security_group.controlplane.id, src = aws_security_group.workers.id, proto = "tcp", port = 5473 }
     w_kubelet_from_cp     = { sg = aws_security_group.workers.id, src = aws_security_group.controlplane.id, proto = "tcp", port = 10250 }

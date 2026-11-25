@@ -1,0 +1,20 @@
+# Prometheus on the verifier host (Phase 6). It scrapes the verifier on the
+# same host and the trust controller on the control plane (only the
+# verifier's security group may reach port 9102 there).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/nodetrust/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: verifier
+    static_configs:
+      - targets: ["127.0.0.1:9101"]
+  - job_name: controller
+    static_configs:
+      - targets: ["@CPIP@:9102"]
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9090"]

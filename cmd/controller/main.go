@@ -50,6 +50,8 @@ type Config struct {
 	} `json:"kube"`
 	QuarantineSG string `json:"quarantine_sg"`
 	NACL         string `json:"nacl"`
+	// MetricsListen is where /metrics is served (Phase 6); empty: :9102.
+	MetricsListen string `json:"metrics_listen,omitempty"`
 }
 
 func main() {
@@ -171,18 +173,26 @@ func serve(args []string) int {
 		return fail(err)
 	}
 	c := &controller.Controller{Kube: controller.KubeAPI{K: kube}, Cloud: cl, Pub: pub, Cfg: *cc, StateDir: cfg.StateDir,
-		Logf: logger.Printf}
+		Logf: logger.Printf, Metrics: controller.NewMetrics()}
 	if err := c.Load(); err != nil {
 		return fail(err)
+	}
+	c.Metrics.Collect(c.Collect)
+	maddr := cfg.MetricsListen
+	if maddr == "" {
+		maddr = ":9102"
+	}
+	if !*once {
+		go func() { logger.Printf("metrics on %s: %v", maddr, c.Metrics.Serve(maddr)) }()
 	}
 	id, _ := nodetrust.KeyID(pub)
 	mode := "LIVE"
 	if cc.DryRun {
 		mode = "dry-run (log only)"
 	}
-	logger.Printf("%s: %s, every %s, NodeTrust from %s pinned to key %s, quarantine %s + %s, breaker >%d nodes or >%.0f%% in %s",
+	logger.Printf("%s: %s, every %s, NodeTrust from %s pinned to key %s, quarantine %s + %s, breaker >%d nodes or >%.0f%% in %s, metrics on %s",
 		version.String("controller"), mode, iv, cfg.Kube.Server, id, cfg.QuarantineSG, cfg.NACL,
-		cc.BreakerNodes, cc.BreakerFraction*100, cc.BreakerWindow)
+		cc.BreakerNodes, cc.BreakerFraction*100, cc.BreakerWindow, maddr)
 	t := time.NewTicker(iv)
 	defer t.Stop()
 	for {

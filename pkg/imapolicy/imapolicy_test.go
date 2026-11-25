@@ -255,4 +255,17 @@ func TestShippedPolicy(t *testing.T) {
 			t.Errorf("harness rule in the shipped policy: %+v", r)
 		}
 	}
+	// logrotate's state file is runtime (Phase 6 run); a binary next to it
+	// is not.
+	idx := testIndex()
+	for path, want := range map[string]string{
+		"/var/lib/logrotate/status":     Runtime,
+		"/var/lib/logrotate/status.tmp": Runtime,
+		"/var/lib/logrotate/evil":       Unknown,
+	} {
+		r := Classify([]Measurement{{Path: path, SHA256: "ab"}}, idx, p)
+		if len(r.Items) != 1 || r.Items[0].Class != want {
+			t.Errorf("%s: %+v, want %s", path, r.Items, want)
+		}
+	}
 }

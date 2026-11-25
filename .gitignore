@@ -39,3 +39,5 @@ infra/phase4/phase4-gate-*/
 infra/phase4/boot-policy*.json
 infra/phase5/check-controller-*/
 infra/phase5/deploy-controller-*/
+infra/phase6/check-monitoring-*/
+infra/phase6/deploy-monitoring-*/

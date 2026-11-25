@@ -1,0 +1,489 @@
+{
+ "uid": "nodetrust",
+ "title": "nodetrust: node trust",
+ "tags": [
+  "nodetrust"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "version": 2,
+ "refresh": "15s",
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "editable": false,
+ "panels": [
+  {
+   "id": 1,
+   "type": "stat",
+   "title": "Trust score per node (colour = tier)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "nodetrust-prometheus"
+   },
+   "gridPos": {
+    "h": 7,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "node_trust_score",
+     "refId": "A",
+     "legendFormat": "{{node}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "min": 0,
+     "max": 100,
+     "unit": "none",
+     "decimals": 1,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "yellow",
+        "value": 75
+       },
+       {
+        "color": "green",
+        "value": 90.001
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "background",
+    "graphMode": "none",
+    "textMode": "value_and_name",
+    "orientation": "auto",
+    "justifyMode": "auto"
+   }
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Score history (drift events marked)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "nodetrust-prometheus"
+   },
+   "gridPos": {
+    "h": 9,
+    "w": 24,
+    "x": 0,
+    "y": 7
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "node_trust_score",
+     "refId": "A",
+     "legendFormat": "{{node}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "min": 0,
+     "max": 100,
+     "custom": {
+      "lineInterpolation": "stepAfter",
+      "lineWidth": 2,
+      "showPoints": "never",
+      "thresholdsStyle": {
+       "mode": "dashed"
+      }
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 50
+       },
+       {
+        "color": "yellow",
+        "value": 75
+       },
+       {
+        "color": "green",
+        "value": 90.001
+       }
+      ]
+     },
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "none"
+    }
+   }
+  },
+  {
+   "id": 3,
+   "type": "table",
+   "title": "Share of each component's points left, % (node x component)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "nodetrust-prometheus"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 16
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "refId": "A",
+     "legendFormat": "",
+     "instant": true,
+     "range": false,
+     "format": "table",
+     "expr": "100 * node_trust_component_score / on (component) group_left () node_trust_component_weight"
+    }
+   ],
+   "transformations": [
+    {
+     "id": "groupingToMatrix",
+     "options": {
+      "rowField": "node",
+      "columnField": "component",
+      "valueField": "Value"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "decimals": 0,
+     "custom": {
+      "cellOptions": {
+       "type": "color-background"
+      },
+      "align": "center"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 0.5
+       },
+       {
+        "color": "green",
+        "value": 99.5
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "node\\component"
+      },
+      "properties": [
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "auto"
+        }
+       },
+       {
+        "id": "custom.align",
+        "value": "left"
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true
+   }
+  },
+  {
+   "id": 4,
+   "type": "table",
+   "title": "Critical findings and containment progress",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "nodetrust-prometheus"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 16
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "node_trust_critical_findings_total > 0",
+     "refId": "A",
+     "legendFormat": "",
+     "instant": true,
+     "range": false,
+     "format": "table"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "node_containment_phase == 1",
+     "refId": "B",
+     "legendFormat": "",
+     "instant": true,
+     "range": false,
+     "format": "table"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "trust_circuit_breaker_open",
+     "refId": "C",
+     "legendFormat": "",
+     "instant": true,
+     "range": false,
+     "format": "table"
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true,
+       "__name__": true,
+       "instance": true,
+       "job": true
+      },
+      "renameByName": {
+       "Value #A": "findings",
+       "Value #B": "in phase",
+       "Value #C": "breaker open"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "align": "left"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showHeader": true
+   }
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Attestation latency (left) and age of the last valid quote (right)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "nodetrust-prometheus"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 24,
+    "x": 0,
+    "y": 24
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "histogram_quantile(0.5, sum by (le, node) (rate(node_attestation_duration_seconds_bucket[5m])))",
+     "refId": "A",
+     "legendFormat": "p50 {{node}}"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "histogram_quantile(0.95, sum by (le, node) (rate(node_attestation_duration_seconds_bucket[5m])))",
+     "refId": "B",
+     "legendFormat": "p95 {{node}}"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "nodetrust-prometheus"
+     },
+     "expr": "node_attestation_age_seconds",
+     "refId": "C",
+     "legendFormat": "age {{node}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "showPoints": "never",
+      "axisLabel": "challenge-to-verdict time"
+     },
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": "^age .*"
+      },
+      "properties": [
+       {
+        "id": "custom.axisPlacement",
+        "value": "right"
+       },
+       {
+        "id": "custom.lineStyle",
+        "value": {
+         "fill": "dash",
+         "dash": [
+          6,
+          4
+         ]
+        }
+       },
+       {
+        "id": "custom.axisLabel",
+        "value": "age of last valid quote"
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "none"
+    }
+   }
+  }
+ ],
+ "annotations": {
+  "list": [
+   {
+    "builtIn": 1,
+    "datasource": {
+     "type": "grafana",
+     "uid": "-- Grafana --"
+    },
+    "enable": true,
+    "hide": true,
+    "iconColor": "rgba(0, 211, 255, 1)",
+    "name": "Annotations & Alerts",
+    "type": "dashboard"
+   },
+   {
+    "datasource": {
+     "type": "prometheus",
+     "uid": "nodetrust-prometheus"
+    },
+    "enable": true,
+    "iconColor": "orange",
+    "name": "drift events",
+    "expr": "increase(node_trust_drift_events_total[1m]) > 0",
+    "step": "30s",
+    "titleFormat": "{{class}} drift",
+    "textFormat": "{{node}}",
+    "tagKeys": "node,class",
+    "useValueForTime": false
+   },
+   {
+    "datasource": {
+     "type": "prometheus",
+     "uid": "nodetrust-prometheus"
+    },
+    "enable": true,
+    "iconColor": "red",
+    "name": "critical findings",
+    "expr": "increase(node_trust_critical_findings_total[1m]) > 0",
+    "step": "30s",
+    "titleFormat": "critical: {{type}}",
+    "textFormat": "{{node}}",
+    "tagKeys": "node,type",
+    "useValueForTime": false
+   }
+  ]
+ }
+}

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -382,5 +383,41 @@ func TestBreakerCountsAttestedWorkersOnly(t *testing.T) {
 	e.round()
 	if e.c.recs["i-a"].Phase != PhaseHeld {
 		t.Fatalf("phase %q: the stale nodes diluted the breaker", e.c.recs["i-a"].Phase)
+	}
+}
+
+func TestControllerMetrics(t *testing.T) {
+	e := newEnv(t, "i-a", "i-b")
+	e.c.Metrics = NewMetrics()
+	e.c.Metrics.Collect(e.c.Collect)
+	e.publish("i-a", trust.Healthy, 100, true)
+	e.publish("i-b", trust.Healthy, 100, false)
+	e.round() // held by the breaker
+	var b bytes.Buffer
+	e.c.Metrics.Write(&b)
+	for _, want := range []string{
+		`node_containment_phase{node="i-a",phase="held"} 1`,
+		`node_containment_phase{node="i-a",phase="isolated"} 0`,
+		`trust_circuit_breaker_open 1`,
+		`node_containment_step_seconds_count{step="cordoned"} 1`,
+	} {
+		if !strings.Contains(b.String(), want+"\n") {
+			t.Fatalf("missing %s in\n%s", want, b.String())
+		}
+	}
+	Approve(e.c.StateDir, "i-a")
+	e.now = e.now.Add(90 * time.Second)
+	e.round()
+	b.Reset()
+	e.c.Metrics.Write(&b)
+	for _, want := range []string{
+		`node_containment_phase{node="i-a",phase="released"} 1`,
+		`trust_circuit_breaker_open 0`,
+		`node_containment_step_seconds_bucket{step="isolated",le="60"} 0`,
+		`node_containment_step_seconds_bucket{step="isolated",le="120"} 1`,
+	} {
+		if !strings.Contains(b.String(), want+"\n") {
+			t.Fatalf("missing %s in\n%s", want, b.String())
+		}
 	}
 }

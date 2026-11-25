@@ -51,6 +51,8 @@ type serveConfig struct {
 	// DisableProbes turns off challenge probes ("canary", "sweep",
 	// "mounts"); all are on by default (blueprint 6.2).
 	DisableProbes []string `json:"disable_probes,omitempty"`
+	// MetricsListen is where /metrics is served (Phase 6); empty: 127.0.0.1:9101.
+	MetricsListen string `json:"metrics_listen,omitempty"`
 }
 
 func loadServeConfig(path string) (*serveConfig, error) {
@@ -182,12 +184,21 @@ func serve(args []string) (code int) {
 		Interval:      iv,
 		Probes:        probes,
 		Log:           logger,
+		Metrics:       verifier.NewMetrics(),
 	}
 	if err := d.Load(); err != nil {
 		return fail(err)
 	}
-	logger.Printf("%s: region %s, %d allowed AMI(s), healthy nodes every %s, probes %+v, state in %s, NodeTrust to %s signed with key %s",
-		version.String("verifier"), c.Region, len(allowed), iv, probes, cfg.StateDir, cfg.Kube.Server, tkid)
+	d.Metrics.Collect(d.Collect)
+	maddr := cfg.MetricsListen
+	if maddr == "" {
+		maddr = "127.0.0.1:9101"
+	}
+	if !*once {
+		go func() { logger.Printf("metrics on %s: %v", maddr, d.Metrics.Serve(maddr)) }()
+	}
+	logger.Printf("%s: region %s, %d allowed AMI(s), healthy nodes every %s, probes %+v, state in %s, NodeTrust to %s signed with key %s, metrics on %s",
+		version.String("verifier"), c.Region, len(allowed), iv, probes, cfg.StateDir, cfg.Kube.Server, tkid, maddr)
 	if *once {
 		if err := d.Round(ctx); err != nil {
 			return fail(err)

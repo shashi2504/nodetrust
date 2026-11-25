@@ -35,6 +35,8 @@
     {"pattern": "/var/lib/calico/", "why": "calico-node state"},
     {"pattern": "/var/log/", "why": "logs (journald writes while root reads, so ToMToU violations are expected here)"},
     {"pattern": "/var/lib/systemd/", "why": "systemd state (random seed, timers, credentials)"},
+    {"pattern": "/var/lib/logrotate/status", "why": "logrotate's state file, read by root when logrotate.timer runs; on a worker booted more than a day after the AMI was built the persistent timer fires at boot (found in the Phase 6 run)"},
+    {"pattern": "/var/lib/logrotate/status.tmp", "why": "the temp file logrotate writes before renaming it to status"},
     {"pattern": "/var/lib/amazon/ssm/", "why": "documents run by the SSM agent as root: the remote admin channel; recorded so every SSM command is visible in the log"},
     {"pattern": "/etc/ssh/ssh_host_*", "why": "host keys generated at first boot by cloud-init (ssh itself is masked)"},
     {"pattern": "/var/lib/nodetrust/", "why": "nodetrust runtime state"}

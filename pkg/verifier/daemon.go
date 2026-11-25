@@ -19,6 +19,7 @@ import (
 	"nodetrust/pkg/imapolicy"
 	"nodetrust/pkg/joinref"
 	"nodetrust/pkg/manifest"
+	"nodetrust/pkg/metrics"
 	"nodetrust/pkg/nodetrust"
 	"nodetrust/pkg/provider"
 	"nodetrust/pkg/trust"
@@ -141,6 +142,7 @@ type Daemon struct {
 	BootPolicy    *bootpolicy.Policy // nil skips boot checks (simulator tests only)
 	JoinRef       *joinref.Reference // join-time files (blueprint 10.4); nil leaves them to the runtime policy
 	Publisher     TrustPublisher     // signed NodeTrust updates in the cluster (blueprint 8.1); nil publishes nothing
+	Metrics       *metrics.Registry  // counters and histogram (NewMetrics); nil records none
 	Cert          tls.Certificate    // verifier client certificate for the agents
 	StateDir      string             // enrolled/<id>.json and status.json
 	Interval      time.Duration      // challenge interval for a healthy node; shorter for others (IntervalFor)
@@ -306,6 +308,7 @@ func (d *Daemon) record(ctx context.Context, o *outcome) {
 	last := o.obs[len(o.obs)-1]
 	if last.State == StateUnreachable && !d.othersReachable(ctx, o.w.InstanceID) {
 		d.set(o.w, StateOutage, "no other enrolled node is reachable either, not counted: "+last.Reason, nil)
+		d.failure(o.w.InstanceID, "outage")
 		return
 	}
 	d.observe(o)
@@ -464,6 +467,7 @@ func (d *Daemon) visit(ctx context.Context, w Worker) *outcome {
 		}
 	}
 	timeout := cycleTimeout + time.Duration(opt.SweepMS)*time.Millisecond
+	start := d.now()
 	for attempt := 0; attempt < 2; attempt++ {
 		if attempt > 0 {
 			select {
@@ -487,6 +491,7 @@ func (d *Daemon) visit(ctx context.Context, w Worker) *outcome {
 		}
 		jc := d.joinCheck(w, true)
 		v := Judge(q, w, tr, d.RuntimePolicy, d.BootPolicy, jc)
+		d.duration(w.InstanceID, d.now().Sub(start).Seconds())
 		out.q, out.v = q, v
 		next := q.Next
 		out.obs = append(out.obs, Observation{At: at, State: StateVerified, Quote: q.Quote, Verdict: v, Next: &next,
@@ -547,6 +552,15 @@ func (d *Daemon) observe(o *outcome) {
 
 	for _, ev := range events {
 		d.logf("%s: %s %s (score %g)", w.InstanceID, ev.Kind, ev.Detail, ev.Score)
+	}
+	d.count(w.InstanceID, events)
+	for _, ob := range o.obs {
+		switch ob.State {
+		case StateUnreachable:
+			d.failure(w.InstanceID, "unreachable")
+		case StateBadEvidence:
+			d.failure(w.InstanceID, "bad-evidence")
+		}
 	}
 	if d.StateDir != "" {
 		if err := writeJSONFile(filepath.Join(d.StateDir, "track", w.InstanceID+".json"), &snap); err != nil {

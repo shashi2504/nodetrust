@@ -1,0 +1,29 @@
+[Unit]
+Description=Prometheus for nodetrust (scrapes the verifier and the trust controller)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/prometheus --config.file=/etc/nodetrust/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/nodetrust-prometheus --storage.tsdb.retention.time=15d \
+  --web.listen-address=127.0.0.1:9090
+Restart=always
+RestartSec=5
+DynamicUser=yes
+StateDirectory=nodetrust-prometheus
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

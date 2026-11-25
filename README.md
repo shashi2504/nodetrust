@@ -68,6 +68,7 @@ How a node is checked, module by module (input -> output):
 | `pkg/controller` | signed NodeTrust objects, Nodes | taints, cordon, evictions; the critical path |
 | `pkg/provider/aws` (containment) | instance ID | quarantine group and ACL deny, snapshots, detach from the group, terminate |
 | `cmd/controller` | config.json | the controller service, `approve` and `terminate` |
+| `pkg/metrics` | counters, histograms, current state | Prometheus text format on /metrics |
 | `cmd/verifier` | config.json | the verifier service and its command-line tools |
 
 The full picture of each phase, with the reasons for each design choice and
@@ -177,7 +178,11 @@ DRY_RUN=1 ./deploy-controller.sh && ./check-controller.sh
 cd ../phase4 && ./replace-workers.sh && cd ../phase5
 DRY_RUN=0 ./deploy-controller.sh && ./check-controller.sh
 
-# 8. clean up (the trust stack stays; check-controller.sh prints how to delete the evidence snapshots)
+# 8. monitoring (Phase 6): Prometheus, alert rules and Grafana on the verifier host
+cd ../phase4 && ./replace-workers.sh && cd ../phase6
+./deploy-monitoring.sh && ./check-monitoring.sh
+
+# 9. clean up (the trust stack stays; check-controller.sh prints how to delete the evidence snapshots)
 cd ../cluster && terraform destroy
 ```
 
@@ -335,6 +340,7 @@ infra/cluster                              Terraform: VPC, control plane, worker
 infra/phase3                               enrollment and quotes on NitroTPM
 infra/phase4                               verifier deployment and the live checks
 infra/phase5                               trust controller deployment and its checks
+infra/phase6                               Prometheus, alert rules, Grafana dashboard and the Phase 6 check
 docs                                       architecture diagram, TPM layer notes
 ```
 
@@ -349,7 +355,8 @@ phase README has the full output and every problem found on the way.
 - Phase 3 (TPM layer, enrollment and quotes over mTLS): done. Notes on the TPM layer: [docs/tpm-layer.md](docs/tpm-layer.md).
 - Phase 4 (verifier, trust engine, probes, join-time files, signed NodeTrust): done. check-scoring, check-probes, check-join and check-nodetrust pass, and the Phase 4 gate passed (4-hour soak at 100 on both workers, A11 gradual drift exact).
 - Phase 5 (trust controller and containment): done. Dry run and one live quarantine on NitroTPM workers pass (critical taint 10 s after the finding, quarantine group and ACL deny, evidence snapshot, replacement, Node deleted, control plane cut off from the node); see [infra/phase5/README.md](infra/phase5/README.md), including the bugs the live runs found. The peer-side deny DaemonSet is future work.
-- Phase 6 (metrics, dashboard, alerts) and Phase 7 (evaluation): next.
+- Phase 6 (metrics, alert rules, Grafana dashboard): done. All twelve Section 9 metrics have data and all five alerts fired in the live test (attestation p95 0.24 s); see [infra/phase6/README.md](infra/phase6/README.md). Dashboard screenshots: [docs/results](docs/results).
+- Phase 7 (evaluation): next.
 
 Known limits, also in the phase READMEs: the NodeTrust signing key is made
 by Terraform instead of being sealed in an enclave; the verifier checks one

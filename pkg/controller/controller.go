@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"nodetrust/pkg/metrics"
 	"nodetrust/pkg/nodetrust"
 	"nodetrust/pkg/provider"
 )
@@ -121,6 +122,7 @@ type Controller struct {
 	StateDir string // state.json, status.json, approve/<instance-id>
 	Logf     func(format string, a ...any)
 	Now      func() time.Time
+	Metrics  *metrics.Registry // containment step times (NewMetrics); nil records none
 
 	mu      sync.Mutex
 	recs    map[string]*Record
@@ -477,6 +479,7 @@ func (c *Controller) critical(ctx context.Context, id string, r *Record, n Node,
 	}
 	if r.Phase == "" {
 		r.Phase = PhaseCordoned
+		c.step(PhaseCordoned, c.now().Sub(r.CriticalAt).Seconds())
 		c.event(id, r, "cordoned and tainted "+TaintCritical+":NoExecute")
 		if len(r.Secrets) > 0 {
 			c.event(id, r, "secrets to rotate: "+strings.Join(r.Secrets, ", "))
@@ -513,6 +516,7 @@ func (c *Controller) critical(ctx context.Context, id string, r *Record, n Node,
 			return fmt.Errorf("%s: %w", stepText[s], err)
 		}
 		r.Phase = s
+		c.step(s, c.now().Sub(r.CriticalAt).Seconds())
 		text := stepText[s]
 		if s == PhaseSnapshot {
 			text += ": " + strings.Join(r.Snapshots, ", ")
