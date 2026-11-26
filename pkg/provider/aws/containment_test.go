@@ -68,9 +68,22 @@ func (f *fakeCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.calls = append(f.calls, act)
 	switch act {
 	case "DescribeInstances":
-		id := q.Get("Filter.1.Value.1")
+		var ids []string
+		if q.Get("Filter.1.Name") == "private-ip-address" {
+			for id, in := range f.insts {
+				if in.ip == q.Get("Filter.1.Value.1") {
+					ids = append(ids, id)
+				}
+			}
+		} else {
+			ids = []string{q.Get("Filter.1.Value.1")}
+		}
 		fmt.Fprint(w, `<DescribeInstancesResponse><reservationSet>`)
-		if in, ok := f.insts[id]; ok {
+		for _, id := range ids {
+			in, ok := f.insts[id]
+			if !ok {
+				continue
+			}
 			fmt.Fprintf(w, `<item><instancesSet><item><instanceId>%s</instanceId><privateIpAddress>%s</privateIpAddress>
 <instanceState><name>%s</name></instanceState><subnetId>subnet-w</subnetId><vpcId>vpc-1</vpcId>
 <rootDeviceName>/dev/sda1</rootDeviceName><blockDeviceMapping>`, id, in.ip, in.state)
@@ -88,6 +101,18 @@ func (f *fakeCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `</networkInterfaceSet></item></instancesSet></item>`)
 		}
 		fmt.Fprint(w, `</reservationSet></DescribeInstancesResponse>`)
+	case "DeleteNetworkAclEntry":
+		var n int
+		fmt.Sscan(q.Get("RuleNumber"), &n)
+		eg := q.Get("Egress") == "true"
+		for i, e := range f.acl {
+			if e.Rule == n && e.Egress == eg {
+				f.acl = append(f.acl[:i], f.acl[i+1:]...)
+				fmt.Fprint(w, `<DeleteNetworkAclEntryResponse><return>true</return></DeleteNetworkAclEntryResponse>`)
+				return
+			}
+		}
+		xmlErr(w, "InvalidNetworkAclEntry.NotFound")
 	case "DescribeNetworkAcls":
 		fmt.Fprint(w, `<DescribeNetworkAclsResponse><networkAclSet><item><entrySet>`)
 		for _, e := range f.acl {
@@ -219,5 +244,70 @@ func TestIsolateDeniesBothDirections(t *testing.T) {
 	}
 	if g := f.insts[string(a)].enis["eni-1"]; len(g) != 1 || g[0] != "sg-quarantine" {
 		t.Fatalf("groups %v", g)
+	}
+}
+
+func (f *fakeCloud) denies() string {
+	var got []string
+	for _, e := range f.acl {
+		if e.Action == "deny" {
+			got = append(got, fmt.Sprintf("%d %t %s", e.Rule, e.Egress, e.CIDR))
+		}
+	}
+	return strings.Join(got, ",")
+}
+
+// Deny entries do not pile up (Phase 7 trial: NetworkAclEntryLimitExceeded):
+// Terminate removes its own; an instance terminated elsewhere loses its
+// entries at the next Isolate; an address reused by a fresh worker is not
+// left denied.
+func TestDenyEntriesRemoved(t *testing.T) {
+	p, f := fakeContainment(t)
+	ctx := t.Context()
+	a, b, c := f.add(), f.add(), f.add()
+	for _, id := range []provider.InstanceID{a, b} {
+		if err := p.Isolate(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := p.Snapshot(ctx, a, "test"); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Terminate(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := f.denies(), "101 false 10.42.16.2/32,101 true 10.42.16.2/32"; got != want {
+		t.Fatalf("after Terminate: %s, want %s", got, want)
+	}
+	// b is terminated by the Auto Scaling group; its address goes to a new
+	// worker d, which is healthy.
+	f.mu.Lock()
+	f.insts[string(b)].state = "terminated"
+	f.mu.Unlock()
+	d := f.add()
+	f.mu.Lock()
+	f.insts[string(d)].ip = "10.42.16.2"
+	f.mu.Unlock()
+	if err := p.Isolate(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := f.denies(), "100 false 10.42.16.3/32,100 true 10.42.16.3/32"; got != want {
+		t.Fatalf("after the next Isolate: %s, want %s", got, want)
+	}
+	// Many contained nodes in a row stay within a few entries.
+	for i := 0; i < 30; i++ {
+		x := f.add()
+		if err := p.Isolate(ctx, x); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := p.Snapshot(ctx, x, "t"); err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Terminate(ctx, x); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := strings.Count(f.denies(), "/32"); n != 2 {
+		t.Fatalf("%d deny entries left: %s", n, f.denies())
 	}
 }

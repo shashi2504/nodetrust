@@ -341,6 +341,7 @@ infra/phase3                               enrollment and quotes on NitroTPM
 infra/phase4                               verifier deployment and the live checks
 infra/phase5                               trust controller deployment and its checks
 infra/phase6                               Prometheus, alert rules, Grafana dashboard and the Phase 6 check
+infra/phase7                               evaluation runner, runs.csv and results
 docs                                       architecture diagram, TPM layer notes
 ```
 
@@ -356,7 +357,7 @@ phase README has the full output and every problem found on the way.
 - Phase 4 (verifier, trust engine, probes, join-time files, signed NodeTrust): done. check-scoring, check-probes, check-join and check-nodetrust pass, and the Phase 4 gate passed (4-hour soak at 100 on both workers, A11 gradual drift exact).
 - Phase 5 (trust controller and containment): done. Dry run and one live quarantine on NitroTPM workers pass (critical taint 10 s after the finding, quarantine group and ACL deny, evidence snapshot, replacement, Node deleted, control plane cut off from the node); see [infra/phase5/README.md](infra/phase5/README.md), including the bugs the live runs found. The peer-side deny DaemonSet is future work.
 - Phase 6 (metrics, alert rules, Grafana dashboard): done. All twelve Section 9 metrics have data and all five alerts fired in the live test (attestation p95 0.24 s); see [infra/phase6/README.md](infra/phase6/README.md). Dashboard screenshots: [docs/results](docs/results).
-- Phase 7 (evaluation): next.
+- Phase 7 (evaluation): in progress. Trial of every live attack scenario, 2 runs each (30 runs): every run gave the expected finding; critical nodes were isolated 0.9 s and released 2.0 s after approval; the 11 non-critical runs lost no node, where the binary baseline would have lost all 11. The trial found a midnight false positive (dpkg backups), a network ACL that fills up after about 18 containments, and runner bugs, all fixed. Results: [infra/phase7/results.md](infra/phase7/results.md); details: [infra/phase7/README.md](infra/phase7/README.md). Next: the 10-run campaign, the safety tests and the normal-change runs.
 
 Known limits, also in the phase READMEs: the NodeTrust signing key is made
 by Terraform instead of being sealed in an enclave; the verifier checks one

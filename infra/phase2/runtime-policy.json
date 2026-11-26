@@ -37,6 +37,10 @@
     {"pattern": "/var/lib/systemd/", "why": "systemd state (random seed, timers, credentials)"},
     {"pattern": "/var/lib/logrotate/status", "why": "logrotate's state file, read by root when logrotate.timer runs; on a worker booted more than a day after the AMI was built the persistent timer fires at boot (found in the Phase 6 run)"},
     {"pattern": "/var/lib/logrotate/status.tmp", "why": "the temp file logrotate writes before renaming it to status"},
+    {"pattern": "/var/backups/dpkg.status.*", "why": "dpkg-db-backup.timer copies the package database here every day at 00:00 UTC and reads it as root (found in the Phase 7 trial: both workers scored 70 at midnight)"},
+    {"pattern": "/var/backups/dpkg.diversions.*", "why": "dpkg-db-backup.timer copies the package database here every day at 00:00 UTC and reads it as root (found in the Phase 7 trial: both workers scored 70 at midnight)"},
+    {"pattern": "/var/backups/dpkg.statoverride.*", "why": "dpkg-db-backup.timer copies the package database here every day at 00:00 UTC and reads it as root (found in the Phase 7 trial: both workers scored 70 at midnight)"},
+    {"pattern": "/var/backups/alternatives.tar.*", "why": "dpkg-db-backup.timer copies the package database here every day at 00:00 UTC and reads it as root (found in the Phase 7 trial: both workers scored 70 at midnight)"},
     {"pattern": "/var/lib/amazon/ssm/", "why": "documents run by the SSM agent as root: the remote admin channel; recorded so every SSM command is visible in the log"},
     {"pattern": "/etc/ssh/ssh_host_*", "why": "host keys generated at first boot by cloud-init (ssh itself is masked)"},
     {"pattern": "/var/lib/nodetrust/", "why": "nodetrust runtime state"}

@@ -21,7 +21,7 @@ func NewMetrics() *metrics.Registry {
 	return r
 }
 
-var phases = []string{PhaseCordoned, PhaseHeld, PhaseIsolated, PhaseSnapshot, PhaseReplaced, PhaseReleased}
+var phases = []string{PhaseCordoned, PhaseHeld, PhaseIsolated, PhaseSnapshot, PhaseReplaced, PhaseReleased, PhaseGone}
 
 // Collect writes the gauges (register it with Metrics.Collect).
 func (c *Controller) Collect(w *metrics.Writer) {

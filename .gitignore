@@ -41,3 +41,7 @@ infra/phase5/check-controller-*/
 infra/phase5/deploy-controller-*/
 infra/phase6/check-monitoring-*/
 infra/phase6/deploy-monitoring-*/
+
+# Phase 7 per-run evidence (verifier and controller JSON); runs.csv and results.md are kept
+infra/phase7/raw/
+infra/phase4/diag-*

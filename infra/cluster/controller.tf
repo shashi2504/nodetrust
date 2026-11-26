@@ -52,7 +52,7 @@ data "aws_iam_policy_document" "controller" {
   }
   statement {
     sid     = "Quarantine"
-    actions = ["ec2:ModifyNetworkInterfaceAttribute", "ec2:CreateNetworkAclEntry"]
+    actions = ["ec2:ModifyNetworkInterfaceAttribute", "ec2:CreateNetworkAclEntry", "ec2:DeleteNetworkAclEntry"]
     resources = [
       "arn:aws:ec2:${var.region}:*:network-interface/*",
       "arn:aws:ec2:${var.region}:*:security-group/${aws_security_group.quarantine.id}",

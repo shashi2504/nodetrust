@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -86,6 +87,7 @@ const (
 	PhaseSnapshot = "snapshotted" // step 3: EBS snapshots
 	PhaseReplaced = "replaced"    // step 4: detached from the Auto Scaling group
 	PhaseReleased = "released"    // step 5: Node object deleted
+	PhaseGone     = "gone"        // the instance was terminated before containment finished
 )
 
 // Event is one thing the controller did or would do.
@@ -186,6 +188,11 @@ func (c *Controller) rec(id string) *Record {
 }
 
 func (c *Controller) event(id string, r *Record, text string) {
+	// A step that keeps failing the same way is recorded once, not every
+	// round: 40 copies of one error would push the earlier events out.
+	if n := len(r.Events); n > 0 && strings.HasPrefix(text, "error: ") && r.Events[n-1].Text == text {
+		return
+	}
 	r.Events = append(r.Events, Event{At: c.now().UTC(), Text: text})
 	if len(r.Events) > 40 {
 		r.Events = r.Events[len(r.Events)-40:]
@@ -266,7 +273,7 @@ func (c *Controller) Reconcile(ctx context.Context) error {
 		ids[id] = true
 	}
 	for id, r := range c.recs {
-		if r.Phase != "" && r.Phase != PhaseReleased {
+		if r.Phase != "" && r.Phase != PhaseReleased && r.Phase != PhaseGone {
 			ids[id] = true
 		}
 	}
@@ -285,6 +292,7 @@ func (c *Controller) Reconcile(ctx context.Context) error {
 		spec := Desired(r.State, stale)
 		var err error
 		switch {
+		case r.Phase == PhaseGone:
 		case r.Phase != "" || (spec.Critical && !outage):
 			err = c.critical(ctx, id, r, n, hasNode, spec, attested)
 		case outage || !hasNode:
@@ -510,6 +518,18 @@ func (c *Controller) critical(ctx context.Context, id string, r *Record, n Node,
 		case PhaseReleased:
 			if hasNode {
 				err = c.Kube.DeleteNode(ctx, n.Name)
+			}
+		}
+		if err != nil && errors.Is(err, provider.ErrPrecondition) {
+			// Terminated by someone else (the Auto Scaling group, an
+			// operator): nothing is left to contain, so stop retrying.
+			if st, serr := c.Cloud.State(ctx, pid); serr == nil && st.Terminated {
+				r.Phase = PhaseGone
+				c.event(id, r, "instance terminated before "+stepText[s]+"; containment stopped")
+				if hasNode {
+					return c.Kube.DeleteNode(ctx, n.Name)
+				}
+				return nil
 			}
 		}
 		if err != nil {

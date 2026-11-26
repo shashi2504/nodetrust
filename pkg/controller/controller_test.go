@@ -421,3 +421,44 @@ func TestControllerMetrics(t *testing.T) {
 		}
 	}
 }
+
+// An instance terminated by someone else before containment finished (the
+// Phase 7 A15 run 2) stops the retries: one event, phase gone, Node deleted.
+func TestTerminatedElsewhereStops(t *testing.T) {
+	e := newEnv(t, "i-a", "i-b", "i-c", "i-d")
+	e.allHealthy()
+	e.cloud.Kill("i-a")
+	e.publish("i-a", trust.Healthy, 100, true)
+	e.round()
+	e.round()
+	e.round()
+	r := e.c.recs["i-a"]
+	if r.Phase != PhaseGone {
+		t.Fatalf("phase %q, want gone", r.Phase)
+	}
+	if got := cloudCalls(e.cloud); got != "Isolate" {
+		t.Fatalf("AWS calls %s, want one try", got)
+	}
+	e.want("i-a", "(deleted)")
+	e.want("i-b", "")
+}
+
+// The same error in every round is recorded once.
+func TestRepeatedErrorRecordedOnce(t *testing.T) {
+	e := newEnv(t, "i-a", "i-b", "i-c", "i-d")
+	e.allHealthy()
+	e.publish("i-a", trust.Healthy, 100, true)
+	e.k.FailPatch = fmt.Errorf("API server down")
+	for i := 0; i < 5; i++ {
+		e.c.Reconcile(context.Background())
+	}
+	n := 0
+	for _, ev := range e.c.recs["i-a"].Events {
+		if strings.HasPrefix(ev.Text, "error: ") {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("%d error events, want 1", n)
+	}
+}

@@ -81,6 +81,16 @@ func (c *Containment) AddInstance(id provider.InstanceID) {
 	c.instances[id] = &provider.State{}
 }
 
+// Kill marks an instance terminated from outside the provider calls, as an
+// Auto Scaling group or an operator would.
+func (c *Containment) Kill(id provider.InstanceID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if st, ok := c.instances[id]; ok {
+		st.Terminated = true
+	}
+}
+
 // Calls returns a copy of every call made so far, in order.
 func (c *Containment) Calls() []Call {
 	c.mu.Lock()

@@ -259,9 +259,12 @@ func TestShippedPolicy(t *testing.T) {
 	// is not.
 	idx := testIndex()
 	for path, want := range map[string]string{
-		"/var/lib/logrotate/status":     Runtime,
-		"/var/lib/logrotate/status.tmp": Runtime,
-		"/var/lib/logrotate/evil":       Unknown,
+		"/var/lib/logrotate/status":       Runtime,
+		"/var/lib/logrotate/status.tmp":   Runtime,
+		"/var/lib/logrotate/evil":         Unknown,
+		"/var/backups/dpkg.status.0":      Runtime,
+		"/var/backups/alternatives.tar.0": Runtime,
+		"/var/backups/evil":               Unknown,
 	} {
 		r := Classify([]Measurement{{Path: path, SHA256: "ab"}}, idx, p)
 		if len(r.Items) != 1 || r.Items[0].Class != want {

@@ -21,7 +21,10 @@ package aws
 //	          desired capacity, so the group launches a clean node; the
 //	          quarantined instance keeps running for forensics
 //	Terminate only after the snapshots exist (operator approval is the
-//	          controller's job)
+//	          controller's job); removes the instance's deny entries
+//
+// Deny entries whose address no longer belongs to a quarantined instance
+// are removed by Isolate and Terminate (see prune).
 //
 // Every step reads the current state first, so repeating a step that
 // already happened does nothing.
@@ -33,6 +36,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
 	"nodetrust/pkg/provider"
 )
@@ -122,6 +126,61 @@ func freeRule(es []aclEntry, egress bool) (int, error) {
 	return 0, errors.New("aws: no free network ACL rule number")
 }
 
+// quarantined reports whether every ENI of the instance has only the
+// quarantine group.
+func (p *Containment) quarantined(in *Instance) bool {
+	if len(in.ENIs) == 0 {
+		return false
+	}
+	for _, e := range in.ENIs {
+		if len(e.Groups) != 1 || e.Groups[0] != p.QuarantineSG {
+			return false
+		}
+	}
+	return true
+}
+
+// prune deletes the deny entries whose address no longer belongs to a
+// quarantined instance: the instance was terminated (by Terminate, the
+// Auto Scaling group or an operator), or its address went to a new worker,
+// which must not inherit the deny. keep is an address being isolated right
+// now. Without this the entries pile up until the ACL is full (20 rules a
+// direction by default; the Phase 7 trial hit NetworkAclEntryLimitExceeded
+// after about 18 contained runs).
+func (p *Containment) prune(ctx context.Context, es []aclEntry, keep string) ([]aclEntry, error) {
+	var left []aclEntry
+	held := map[string]bool{}
+	for _, e := range es {
+		if e.Action != "deny" || e.Rule < firstDenyRule || e.Rule > lastDenyRule || e.CIDR == keep {
+			left = append(left, e)
+			continue
+		}
+		ok, seen := held[e.CIDR]
+		if !seen {
+			ins, err := p.C.DescribeInstances(ctx, map[string][]string{"private-ip-address": {strings.TrimSuffix(e.CIDR, "/32")}})
+			if err != nil {
+				return es, err
+			}
+			for i := range ins {
+				if !gone(&ins[i]) && p.quarantined(&ins[i]) {
+					ok = true
+				}
+			}
+			held[e.CIDR] = ok
+		}
+		if ok {
+			left = append(left, e)
+			continue
+		}
+		err := p.C.ec2(ctx, url.Values{"Action": {"DeleteNetworkAclEntry"}, "NetworkAclId": {p.NACL},
+			"RuleNumber": {strconv.Itoa(e.Rule)}, "Egress": {strconv.FormatBool(e.Egress)}}, nil)
+		if err != nil {
+			return es, fmt.Errorf("aws: remove stale NACL deny for %s: %w", e.CIDR, err)
+		}
+	}
+	return left, nil
+}
+
 func (p *Containment) isolated(ctx context.Context, in *Instance) (bool, error) {
 	for _, e := range in.ENIs {
 		if len(e.Groups) != 1 || e.Groups[0] != p.QuarantineSG {
@@ -158,6 +217,9 @@ func (p *Containment) Isolate(ctx context.Context, id provider.InstanceID) error
 	cidr := in.PrivateIP + "/32"
 	es, err := p.aclEntries(ctx)
 	if err != nil {
+		return err
+	}
+	if es, err = p.prune(ctx, es, cidr); err != nil {
 		return err
 	}
 	hasIn, hasOut := denied(es, cidr)
@@ -317,7 +379,17 @@ func (p *Containment) Terminate(ctx context.Context, id provider.InstanceID) err
 	if len(snaps) == 0 {
 		return fmt.Errorf("%w: %s has no evidence snapshot", provider.ErrPrecondition, id)
 	}
-	return p.C.ec2(ctx, url.Values{"Action": {"TerminateInstances"}, "InstanceId.1": {string(id)}}, nil)
+	if err := p.C.ec2(ctx, url.Values{"Action": {"TerminateInstances"}, "InstanceId.1": {string(id)}}, nil); err != nil {
+		return err
+	}
+	// Its deny entries go now; any others left by instances terminated
+	// elsewhere go with them.
+	es, err := p.aclEntries(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = p.prune(ctx, es, "")
+	return err
 }
 
 // State implements provider.ContainmentProvider.
